@@ -2,6 +2,7 @@
 12 Months — FastAPI Application Entry Point (webhook + API mode).
 
 Sprint 2: Webhook endpoint wired up; bot handlers registered.
+Sprint 3: Products API router added.
 """
 import logging
 from contextlib import asynccontextmanager
@@ -11,6 +12,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.api.routers import webhook as webhook_router
+from backend.api.routers import products as products_router
 from backend.bot.instance import bot, dp
 from backend.bot.setup import setup_dispatcher
 from backend.core.config import settings
@@ -100,6 +102,7 @@ app.add_middleware(
 
 # ── Routers ───────────────────────────────────────────────────
 app.include_router(webhook_router.router)
+app.include_router(products_router.router)
 
 
 # ── Health Check ──────────────────────────────────────────────
