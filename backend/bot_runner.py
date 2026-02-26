@@ -1,15 +1,18 @@
 """
-12 Months — Telegram Bot Runner
-Sprint 1: Skeleton. Handlers підключаються в Sprint 2.
+12 Months — Telegram Bot Runner (polling mode for local development).
+
+Use this entry point when running locally without HTTPS/webhooks.
+In production the bot is driven by the FastAPI webhook endpoint in
+backend/api/routers/webhook.py.
+
+Usage:
+    python -m backend.bot_runner
 """
 import asyncio
 import logging
 
-from aiogram import Bot, Dispatcher
-from aiogram.enums import ParseMode
-from aiogram.client.default import DefaultBotProperties
-
-from backend.core.config import settings
+from backend.bot.instance import bot, dp
+from backend.bot.setup import setup_dispatcher
 
 logging.basicConfig(
     level=logging.INFO,
@@ -19,23 +22,22 @@ logger = logging.getLogger(__name__)
 
 
 async def main() -> None:
-    bot = Bot(
-        token=settings.bot_token,
-        default=DefaultBotProperties(parse_mode=ParseMode.HTML),
-    )
-    dp = Dispatcher()
+    # Register all middlewares and routers
+    setup_dispatcher(dp)
 
-    # ── Routers (підключаються в Sprint 2) ───────────────────
-    # from backend.bot.handlers.start import router as start_router
-    # dp.include_router(start_router)
+    logger.info("Starting bot in POLLING mode (local dev)...")
 
-    logger.info("Bot starting in webhook mode...")
-    logger.info(f"Webhook URL: {settings.webhook_url}")
-
-    # У prod-режимі бот запускається як частина FastAPI через webhook.
-    # Тут залишаємо polling тільки для локальної розробки без HTTPS.
+    # Remove any existing webhook so polling works
     await bot.delete_webhook(drop_pending_updates=True)
-    await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())
+
+    try:
+        await dp.start_polling(
+            bot,
+            allowed_updates=dp.resolve_used_update_types(),
+        )
+    finally:
+        await bot.session.close()
+        logger.info("Bot stopped.")
 
 
 if __name__ == "__main__":
