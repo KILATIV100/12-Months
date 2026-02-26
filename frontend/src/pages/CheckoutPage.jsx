@@ -1,16 +1,17 @@
 /**
+ * // filepath: frontend/src/pages/CheckoutPage.jsx
+ *
  * CheckoutPage — 4-step order checkout.
  *
  * Step 1: Кошик        — read-only cart review
  * Step 2: Доставка     — pickup/delivery toggle, address, date + time slot
- * Step 3: Отримувач    — recipient name, phone, comment
+ * Step 3: Отримувач    — recipient name, phone, comment + optional greeting card
  * Step 4: Оплата       — summary + payment trigger
  *
- * Telegram MainButton:
- *   Steps 1-3 → "Далі →"
- *   Step 4    → "Оплатити {total} ₴"  (calls createOrder → createPaymentLink → openLink)
- *
- * Cart is cleared only after a successful payment link is obtained.
+ * Sprint 6 addition (Step 3):
+ *   User can optionally create a greeting card (text or video).
+ *   After createOrder succeeds, greeting is uploaded to /api/media/greeting.
+ *   The QR code is shown in Step 4 summary.
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -21,6 +22,7 @@ import { useTelegram } from '@hooks/useTelegram'
 import StepBar from '@components/checkout/StepBar'
 import { Button } from '@components/ui'
 import { createOrder, createPaymentLink } from '@api/orders'
+import { uploadGreeting } from '@api/media'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -34,6 +36,8 @@ const TIME_SLOTS = [
   '17:00–19:00',
   '19:00–21:00',
 ]
+
+const MAX_VIDEO_MB = 50
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10)
@@ -70,34 +74,50 @@ export default function CheckoutPage() {
   const [step, setStep] = useState(1)
   const [formError, setFormError] = useState('')
 
-  // Form state
+  // Delivery form state
   const [deliveryType, setDeliveryType]         = useState('delivery')
   const [address, setAddress]                   = useState('')
   const [deliveryDate, setDeliveryDate]         = useState(tomorrowISO())
   const [deliveryTimeSlot, setDeliveryTimeSlot] = useState(TIME_SLOTS[1])
-  const [recipientName, setRecipientName]       = useState('')
-  const [recipientPhone, setRecipientPhone]     = useState('')
-  const [comment, setComment]                   = useState('')
+
+  // Recipient form state
+  const [recipientName, setRecipientName]   = useState('')
+  const [recipientPhone, setRecipientPhone] = useState('')
+  const [comment, setComment]               = useState('')
+
+  // Greeting card state (Sprint 6)
+  const [greetingMode, setGreetingMode]   = useState('none')   // none | text | video
+  const [greetingText, setGreetingText]   = useState('')
+  const [greetingVideo, setGreetingVideo] = useState(null)     // File | null
+
+  // QR result (filled after successful greeting upload)
+  const [qrData, setQrData] = useState(null)
 
   // Redirect empty cart
   useEffect(() => {
     if (items.length === 0) navigate('/cart', { replace: true })
   }, [items.length, navigate])
 
-  // ── Validation ───────────────────────────────────────────────
+  // ── Validation ───────────────────────────────────────────────────────────
   function validateStep(s) {
     if (s === 2 && deliveryType === 'delivery' && !address.trim()) {
-      return "Вкажіть адресу доставки"
+      return 'Вкажіть адресу доставки'
     }
     if (s === 3) {
       if (!recipientName.trim()) return "Вкажіть ім'я отримувача"
       const phone = recipientPhone.replace(/\s/g, '')
-      if (!/^\+?[\d]{7,15}$/.test(phone)) return "Невірний номер телефону"
+      if (!/^\+?[\d]{7,15}$/.test(phone)) return 'Невірний номер телефону'
+      if (greetingMode === 'text' && !greetingText.trim()) {
+        return 'Введіть текст листівки або оберіть «Без листівки»'
+      }
+      if (greetingMode === 'video' && !greetingVideo) {
+        return 'Оберіть відео-файл або оберіть «Без листівки»'
+      }
     }
     return ''
   }
 
-  // ── Navigation ───────────────────────────────────────────────
+  // ── Navigation ────────────────────────────────────────────────────────────
   const goNext = useCallback(() => {
     setFormError('')
     const err = validateStep(step)
@@ -106,7 +126,7 @@ export default function CheckoutPage() {
       haptic.impact('light')
       setStep((s) => s + 1)
     }
-  }, [step, validateStep, haptic])
+  }, [step, deliveryType, address, recipientName, recipientPhone, greetingMode, greetingText, greetingVideo, haptic])
 
   const goBack = useCallback(() => {
     setFormError('')
@@ -118,7 +138,7 @@ export default function CheckoutPage() {
     }
   }, [step, navigate, haptic])
 
-  // ── Order + payment mutation ──────────────────────────────────
+  // ── Order + payment mutation ──────────────────────────────────────────────
   const orderMutation = useMutation({
     mutationFn: async () => {
       const orderPayload = {
@@ -135,14 +155,29 @@ export default function CheckoutPage() {
         comment: comment.trim() || null,
       }
 
-      const order = await createOrder(orderPayload)
+      const order   = await createOrder(orderPayload)
       const payment = await createPaymentLink(order.id)
+
+      // Upload greeting if the user added one (non-blocking)
+      if (greetingMode !== 'none') {
+        try {
+          const result = await uploadGreeting({
+            orderId: order.id,
+            greetingType: greetingMode,
+            greetingText: greetingMode === 'text' ? greetingText.trim() : greetingText.trim() || null,
+            videoFile:    greetingMode === 'video' ? greetingVideo : null,
+          })
+          setQrData(result)
+        } catch {
+          // Greeting upload failure must NOT block the payment flow
+        }
+      }
+
       return { order, payment }
     },
 
     onSuccess: ({ payment }) => {
       clearCart()
-      // Open LiqPay checkout inside Telegram
       if (tg) {
         tg.openLink(payment.checkout_url)
       } else {
@@ -166,19 +201,17 @@ export default function CheckoutPage() {
     orderMutation.mutate()
   }, [step, orderMutation, haptic, setMainButtonLoading])
 
-  // ── Telegram MainButton ───────────────────────────────────────
+  // ── Telegram MainButton ───────────────────────────────────────────────────
   useEffect(() => {
     const isLastStep = step === TOTAL_STEPS
-    const label = isLastStep
-      ? `Оплатити ${formatPrice(cartTotal)}`
-      : 'Далі →'
+    const label   = isLastStep ? `Оплатити ${formatPrice(cartTotal)}` : 'Далі →'
     const handler = isLastStep ? handlePay : goNext
 
     showMainButton(label, handler, { color: '#1c3610', textColor: '#faf8f2' })
     return () => hideMainButton(handler)
   }, [step, cartTotal, goNext, handlePay, showMainButton, hideMainButton])
 
-  // ── Telegram BackButton ───────────────────────────────────────
+  // ── Telegram BackButton ───────────────────────────────────────────────────
   useEffect(() => {
     if (!tg) return
     tg.BackButton.onClick(goBack)
@@ -194,21 +227,17 @@ export default function CheckoutPage() {
       className="flex flex-col min-h-screen pb-24 bg-[var(--cream)]"
       style={{ paddingTop: 'var(--safe-top)' }}
     >
-      {/* ── Header ────────────────────────────────────────── */}
+      {/* Header */}
       <div
         className={clsx(
           'sticky top-0 z-[var(--z-overlay)]',
           'bg-[var(--cream)]/95 backdrop-blur-md',
-          'border-b border-[var(--borderl)]'
+          'border-b border-[var(--borderl)]',
         )}
       >
         <div className="flex items-center px-4 pt-3 pb-1 gap-3">
           {!tg && (
-            <button
-              onClick={goBack}
-              className="text-[var(--green)] p-1 -ml-1"
-              aria-label="Назад"
-            >
+            <button onClick={goBack} className="text-[var(--green)] p-1 -ml-1" aria-label="Назад">
               <BackIcon />
             </button>
           )}
@@ -222,40 +251,36 @@ export default function CheckoutPage() {
         <StepBar currentStep={step} />
       </div>
 
-      {/* ── Step content ──────────────────────────────────── */}
+      {/* Step content */}
       <div className="flex-1 px-4 py-4">
-
         {formError && (
           <div className="mb-4 px-3 py-2.5 rounded-[var(--radius-md)] bg-[var(--pinkl)] border border-[var(--pink)] text-sm text-[#8b4a52]">
             ⚠️ {formError}
           </div>
         )}
 
-        {step === 1 && (
-          <Step1Review items={items} total={cartTotal} />
-        )}
+        {step === 1 && <Step1Review items={items} total={cartTotal} />}
+
         {step === 2 && (
           <Step2Delivery
-            deliveryType={deliveryType}
-            setDeliveryType={setDeliveryType}
-            address={address}
-            setAddress={setAddress}
-            deliveryDate={deliveryDate}
-            setDeliveryDate={setDeliveryDate}
-            deliveryTimeSlot={deliveryTimeSlot}
-            setDeliveryTimeSlot={setDeliveryTimeSlot}
+            deliveryType={deliveryType}          setDeliveryType={setDeliveryType}
+            address={address}                    setAddress={setAddress}
+            deliveryDate={deliveryDate}          setDeliveryDate={setDeliveryDate}
+            deliveryTimeSlot={deliveryTimeSlot}  setDeliveryTimeSlot={setDeliveryTimeSlot}
           />
         )}
+
         {step === 3 && (
           <Step3Recipient
-            recipientName={recipientName}
-            setRecipientName={setRecipientName}
-            recipientPhone={recipientPhone}
-            setRecipientPhone={setRecipientPhone}
-            comment={comment}
-            setComment={setComment}
+            recipientName={recipientName}   setRecipientName={setRecipientName}
+            recipientPhone={recipientPhone} setRecipientPhone={setRecipientPhone}
+            comment={comment}               setComment={setComment}
+            greetingMode={greetingMode}     setGreetingMode={setGreetingMode}
+            greetingText={greetingText}     setGreetingText={setGreetingText}
+            greetingVideo={greetingVideo}   setGreetingVideo={setGreetingVideo}
           />
         )}
+
         {step === 4 && (
           <Step4Summary
             items={items}
@@ -267,11 +292,15 @@ export default function CheckoutPage() {
             recipientName={recipientName}
             recipientPhone={recipientPhone}
             comment={comment}
+            greetingMode={greetingMode}
+            greetingText={greetingText}
+            greetingVideo={greetingVideo}
+            qrData={qrData}
           />
         )}
       </div>
 
-      {/* ── Bottom CTA (non-Telegram fallback) ────────────── */}
+      {/* Bottom CTA (non-Telegram fallback) */}
       {!tg && (
         <div className="fixed bottom-0 left-0 right-0 px-4 py-3 bg-[var(--cream)]/95 backdrop-blur-md border-t border-[var(--borderl)]">
           <Button
@@ -355,7 +384,7 @@ function Step2Delivery({
               'transition-all duration-[var(--transition-fast)]',
               deliveryType === value
                 ? 'bg-[var(--green)] text-[var(--cream)] shadow-sm'
-                : 'text-[var(--textm)] hover:text-[var(--text)]'
+                : 'text-[var(--textm)] hover:text-[var(--text)]',
             )}
           >
             {label}
@@ -363,7 +392,6 @@ function Step2Delivery({
         ))}
       </div>
 
-      {/* Address (delivery only) */}
       {deliveryType === 'delivery' && (
         <div className="space-y-1.5">
           <FieldLabel required>Адреса доставки</FieldLabel>
@@ -377,7 +405,6 @@ function Step2Delivery({
         </div>
       )}
 
-      {/* Date */}
       <div className="space-y-1.5">
         <FieldLabel required>Дата {deliveryType === 'delivery' ? 'доставки' : 'самовивозу'}</FieldLabel>
         <input
@@ -389,7 +416,6 @@ function Step2Delivery({
         />
       </div>
 
-      {/* Time slot */}
       <div className="space-y-2">
         <FieldLabel>Час {deliveryType === 'delivery' ? 'доставки' : 'самовивозу'}</FieldLabel>
         <div className="grid grid-cols-3 gap-2">
@@ -402,7 +428,7 @@ function Step2Delivery({
                 'border transition-all duration-[var(--transition-fast)]',
                 deliveryTimeSlot === slot
                   ? 'bg-[var(--green)] text-[var(--cream)] border-[var(--green)]'
-                  : 'bg-[var(--cream2)] text-[var(--textm)] border-[var(--border)] hover:border-[var(--sage)]'
+                  : 'bg-[var(--cream2)] text-[var(--textm)] border-[var(--border)] hover:border-[var(--sage)]',
               )}
             >
               {slot}
@@ -414,15 +440,30 @@ function Step2Delivery({
   )
 }
 
-// ── Step 3: Recipient ─────────────────────────────────────────────────────────
+// ── Step 3: Recipient + Greeting card ────────────────────────────────────────
 
 function Step3Recipient({
   recipientName, setRecipientName,
   recipientPhone, setRecipientPhone,
   comment, setComment,
+  greetingMode, setGreetingMode,
+  greetingText, setGreetingText,
+  greetingVideo, setGreetingVideo,
 }) {
+  const fileInputRef = useRef(null)
+
+  function handleVideoChange(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > MAX_VIDEO_MB * 1024 * 1024) {
+      alert(`Відео не повинно перевищувати ${MAX_VIDEO_MB} МБ`)
+      return
+    }
+    setGreetingVideo(file)
+  }
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <SectionTitle>Дані отримувача</SectionTitle>
 
       <div className="space-y-1.5">
@@ -459,9 +500,116 @@ function Step3Recipient({
           value={comment}
           onChange={(e) => setComment(e.target.value)}
           placeholder="Наприклад: дзвінок у домофон — 48. Без лілій."
-          rows={3}
+          rows={2}
           className={inputClass}
         />
+      </div>
+
+      {/* ── Greeting card section ──────────────────────────────────── */}
+      <div className="pt-2">
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-lg">💌</span>
+          <h3 className="text-sm font-medium text-[var(--deep)]">Вітальна листівка</h3>
+        </div>
+
+        {/* Mode selector */}
+        <div className="grid grid-cols-3 gap-2 mb-4">
+          {[
+            { value: 'none',  emoji: '✕',  desc: 'Без листівки' },
+            { value: 'text',  emoji: '✍️', desc: 'Текст' },
+            { value: 'video', emoji: '🎥', desc: 'Відео' },
+          ].map(({ value, emoji, desc }) => (
+            <button
+              key={value}
+              onClick={() => setGreetingMode(value)}
+              className={clsx(
+                'flex flex-col items-center gap-1.5 py-3 px-2',
+                'rounded-[var(--radius-lg)] border text-xs font-medium',
+                'transition-all duration-[var(--transition-fast)]',
+                greetingMode === value
+                  ? 'bg-[var(--green)] text-[var(--cream)] border-[var(--green)]'
+                  : 'bg-[var(--cream2)] text-[var(--textm)] border-[var(--border)] hover:border-[var(--sage)]',
+              )}
+            >
+              <span className="text-xl leading-none">{emoji}</span>
+              <span>{desc}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Text greeting input */}
+        {greetingMode === 'text' && (
+          <div className="space-y-1.5">
+            <FieldLabel required>Текст листівки</FieldLabel>
+            <textarea
+              value={greetingText}
+              onChange={(e) => setGreetingText(e.target.value)}
+              placeholder="З днем народження! Нехай кожен день буде яскравим та наповненим радістю…"
+              rows={4}
+              maxLength={500}
+              className={inputClass}
+            />
+            <div className="flex justify-end">
+              <span className="text-[10px] text-[var(--textl)]">{greetingText.length}/500</span>
+            </div>
+          </div>
+        )}
+
+        {/* Video greeting input */}
+        {greetingMode === 'video' && (
+          <div className="space-y-3">
+            <FieldLabel required>Відео-файл (до {MAX_VIDEO_MB} МБ)</FieldLabel>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="video/*"
+              className="hidden"
+              onChange={handleVideoChange}
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className={clsx(
+                'w-full py-5 rounded-[var(--radius-lg)] border-2 border-dashed',
+                'flex flex-col items-center gap-2 text-sm',
+                'transition-colors duration-[var(--transition-fast)]',
+                greetingVideo
+                  ? 'border-[var(--green)] bg-[var(--cream2)] text-[var(--green)]'
+                  : 'border-[var(--border)] text-[var(--textm)] hover:border-[var(--sage)]',
+              )}
+            >
+              <span className="text-2xl">{greetingVideo ? '✅' : '📹'}</span>
+              {greetingVideo ? (
+                <span className="font-medium truncate max-w-[200px]">{greetingVideo.name}</span>
+              ) : (
+                <>
+                  <span>Натисніть, щоб обрати відео</span>
+                  <span className="text-xs text-[var(--textl)]">MP4, MOV, AVI до 50 МБ</span>
+                </>
+              )}
+            </button>
+            {greetingVideo && (
+              <button
+                onClick={() => setGreetingVideo(null)}
+                className="text-xs text-[var(--pink)] w-full text-center"
+              >
+                Видалити відео
+              </button>
+            )}
+
+            {/* Optional caption for video */}
+            <div className="space-y-1.5">
+              <FieldLabel>Підпис до відео (необов'язково)</FieldLabel>
+              <input
+                type="text"
+                value={greetingText}
+                onChange={(e) => setGreetingText(e.target.value)}
+                placeholder="З любов'ю для тебе!"
+                maxLength={100}
+                className={inputClass}
+              />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -473,6 +621,8 @@ function Step4Summary({
   items, total,
   deliveryType, address, deliveryDate, deliveryTimeSlot,
   recipientName, recipientPhone, comment,
+  greetingMode, greetingText, greetingVideo,
+  qrData,
 }) {
   const dateFormatted = deliveryDate
     ? new Date(deliveryDate + 'T12:00:00').toLocaleDateString('uk-UA', {
@@ -481,13 +631,19 @@ function Step4Summary({
     : '—'
 
   const rows = [
-    { label: 'Спосіб', value: deliveryType === 'delivery' ? '🚗 Доставка' : '🏪 Самовивіз' },
+    { label: 'Спосіб',    value: deliveryType === 'delivery' ? '🚗 Доставка' : '🏪 Самовивіз' },
     deliveryType === 'delivery' && address && { label: 'Адреса', value: address },
-    { label: 'Дата', value: dateFormatted },
-    deliveryTimeSlot && { label: 'Час', value: deliveryTimeSlot },
+    { label: 'Дата',      value: dateFormatted },
+    deliveryTimeSlot && { label: 'Час',       value: deliveryTimeSlot },
     { label: 'Отримувач', value: recipientName },
-    { label: 'Телефон', value: recipientPhone },
-    comment && { label: 'Коментар', value: comment },
+    { label: 'Телефон',   value: recipientPhone },
+    comment && { label: 'Коментар',  value: comment },
+    greetingMode !== 'none' && {
+      label: 'Листівка',
+      value: greetingMode === 'text'
+        ? `✍️ "${greetingText.slice(0, 40)}${greetingText.length > 40 ? '…' : ''}"`
+        : `🎥 ${greetingVideo?.name ?? 'відео'}`,
+    },
   ].filter(Boolean)
 
   return (
@@ -514,6 +670,26 @@ function Step4Summary({
           </div>
         ))}
       </div>
+
+      {/* QR code preview (if greeting was already uploaded in a previous visit to this step) */}
+      {qrData && (
+        <div
+          className="rounded-[var(--radius-lg)] border border-[var(--borderl)] px-4 py-4 text-center"
+          style={{ background: 'var(--goldl)' }}
+        >
+          <p className="text-xs text-[var(--gold)] font-medium uppercase tracking-wider mb-3">
+            QR-листівка готова!
+          </p>
+          <img
+            src={qrData.qr_png_base64}
+            alt="QR code"
+            className="w-36 h-36 mx-auto rounded-[var(--radius-md)]"
+          />
+          <p className="text-[10px] text-[var(--textl)] mt-2 break-all">
+            {qrData.qr_public_url}
+          </p>
+        </div>
+      )}
 
       {/* Total */}
       <div className="flex items-center justify-between bg-[var(--goldl)] rounded-[var(--radius-lg)] px-4 py-3">
@@ -563,10 +739,8 @@ const inputClass = clsx(
   'border border-[var(--border)] rounded-[var(--radius-md)]',
   'outline-none focus:border-[var(--light)] focus:bg-[var(--cream)]',
   'transition-colors duration-[var(--transition-fast)]',
-  'resize-none'
+  'resize-none',
 )
-
-// ── Icons ─────────────────────────────────────────────────────────────────────
 
 function BackIcon() {
   return (

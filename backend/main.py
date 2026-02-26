@@ -1,10 +1,13 @@
 """
+// filepath: backend/main.py
+
 12 Months — FastAPI Application Entry Point (webhook + API mode).
 
 Sprint 2: Webhook endpoint wired up; bot handlers registered.
 Sprint 3: Products API router added.
 Sprint 4: Orders + Payments routers added.
 Sprint 5: APScheduler (NPS surveys) integrated.
+Sprint 6: Media (greetings/QR) + Swipes (Tinder mode) routers added.
 """
 import logging
 from contextlib import asynccontextmanager
@@ -13,10 +16,12 @@ from aiogram.types import BotCommandScopeAllPrivateChats, BotCommand
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.api.routers import webhook as webhook_router
+from backend.api.routers import webhook  as webhook_router
 from backend.api.routers import products as products_router
-from backend.api.routers import orders as orders_router
+from backend.api.routers import orders   as orders_router
 from backend.api.routers import payments as payments_router
+from backend.api.routers import media    as media_router
+from backend.api.routers import swipes   as swipes_router
 from backend.bot.instance import bot, dp
 from backend.bot.setup import setup_dispatcher
 from backend.core.config import settings
@@ -97,12 +102,12 @@ app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
     debug=settings.debug,
-    docs_url="/docs" if settings.debug else None,
+    docs_url="/docs"  if settings.debug else None,
     redoc_url="/redoc" if settings.debug else None,
     lifespan=lifespan,
 )
 
-# ── CORS ──────────────────────────────────────────────────────
+# ── CORS ──────────────────────────────────────────────────────────────────────
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.allowed_origins,
@@ -111,14 +116,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ── Routers ───────────────────────────────────────────────────
+# ── Routers ───────────────────────────────────────────────────────────────────
 app.include_router(webhook_router.router)
 app.include_router(products_router.router)
 app.include_router(orders_router.router)
 app.include_router(payments_router.router)
+app.include_router(media_router.router)    # Sprint 6: greeting cards + QR
+app.include_router(swipes_router.router)   # Sprint 6: Tinder mode
 
 
-# ── Health Check ──────────────────────────────────────────────
+# ── Health Check ──────────────────────────────────────────────────────────────
 @app.get("/health", tags=["system"])
 async def health_check():
     return {"status": "ok", "version": settings.app_version}

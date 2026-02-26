@@ -1,23 +1,27 @@
 /**
+ * // filepath: frontend/src/App.jsx
+ *
  * App — root component.
  *
- * Sets up React Router v6 with routes:
- *   /          → redirect → /catalog
- *   /catalog   → CatalogPage
- *   /cart      → CartPage
- *   /checkout  → CheckoutPage   (Sprint 4)
- *   /profile   → placeholder    (Sprint 5)
- *
- * Applies Telegram WebApp theme colours to CSS :root so the TWA
- * adapts to the user's Telegram colour scheme automatically.
+ * Routes:
+ *   /                  → redirect → /catalog
+ *   /catalog           → CatalogPage
+ *   /cart              → CartPage
+ *   /checkout          → CheckoutPage
+ *   /tinder            → TinderPage        (Sprint 6 — swipe mode)
+ *   /greeting/:qrToken → GreetingPage      (Sprint 6 — public card viewer)
+ *   /profile           → placeholder
+ *   *                  → redirect → /catalog
  */
 import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import BottomNav from '@components/layout/BottomNav'
-import CatalogPage from '@pages/CatalogPage'
-import CartPage from '@pages/CartPage'
+import CatalogPage  from '@pages/CatalogPage'
+import CartPage     from '@pages/CartPage'
 import CheckoutPage from '@pages/CheckoutPage'
+import TinderPage   from '@pages/TinderPage'
+import GreetingPage from '@pages/GreetingPage'
 import { useTelegram } from '@hooks/useTelegram'
 
 // ── React Query client ────────────────────────────────────────────────────────
@@ -26,7 +30,7 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 1000 * 60 * 5,   // 5 min
-      gcTime: 1000 * 60 * 30,     // 30 min (was cacheTime in v4)
+      gcTime:    1000 * 60 * 30,  // 30 min
       retry: 1,
       refetchOnWindowFocus: false,
     },
@@ -37,7 +41,10 @@ const queryClient = new QueryClient({
 
 function PlaceholderPage({ title, emoji }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-3 min-h-screen pb-20" style={{ paddingTop: 'var(--safe-top)' }}>
+    <div
+      className="flex flex-col items-center justify-center gap-3 min-h-screen pb-20"
+      style={{ paddingTop: 'var(--safe-top)' }}
+    >
       <span className="text-5xl">{emoji}</span>
       <p className="text-[var(--textm)] text-sm">{title} — буде в наступних спринтах</p>
     </div>
@@ -52,16 +59,23 @@ function TelegramThemeSync() {
   useEffect(() => {
     if (!tg || !themeParams) return
     const root = document.documentElement
-    // Map Telegram theme params to our CSS vars (non-destructive override)
-    if (themeParams.bg_color)          root.style.setProperty('--tg-bg-color', themeParams.bg_color)
-    if (themeParams.text_color)        root.style.setProperty('--tg-text-color', themeParams.text_color)
-    if (themeParams.hint_color)        root.style.setProperty('--tg-hint-color', themeParams.hint_color)
-    if (themeParams.link_color)        root.style.setProperty('--tg-link-color', themeParams.link_color)
-    if (themeParams.button_color)      root.style.setProperty('--tg-button-color', themeParams.button_color)
+    if (themeParams.bg_color)          root.style.setProperty('--tg-bg-color',          themeParams.bg_color)
+    if (themeParams.text_color)        root.style.setProperty('--tg-text-color',        themeParams.text_color)
+    if (themeParams.hint_color)        root.style.setProperty('--tg-hint-color',        themeParams.hint_color)
+    if (themeParams.link_color)        root.style.setProperty('--tg-link-color',        themeParams.link_color)
+    if (themeParams.button_color)      root.style.setProperty('--tg-button-color',      themeParams.button_color)
     if (themeParams.button_text_color) root.style.setProperty('--tg-button-text-color', themeParams.button_text_color)
   }, [tg, themeParams])
 
   return null
+}
+
+// ── Routes that show BottomNav ────────────────────────────────────────────────
+
+const NAV_ROUTES = ['/catalog', '/cart', '/profile', '/tinder']
+
+function shouldShowNav(pathname) {
+  return NAV_ROUTES.some((r) => pathname === r || pathname.startsWith(r + '/'))
 }
 
 // ── App shell ─────────────────────────────────────────────────────────────────
@@ -84,15 +98,31 @@ function AppShell() {
         style={{ background: 'var(--cream)', minHeight: '100dvh' }}
       >
         <Routes>
+          {/* Core */}
           <Route path="/"         element={<Navigate to="/catalog" replace />} />
           <Route path="/catalog"  element={<CatalogPage />} />
           <Route path="/cart"     element={<CartPage />} />
           <Route path="/checkout" element={<CheckoutPage />} />
-          <Route path="/profile"  element={<PlaceholderPage title="Особистий кабінет" emoji="👤" />} />
-          <Route path="*"         element={<Navigate to="/catalog" replace />} />
+
+          {/* Sprint 6 */}
+          <Route path="/tinder"             element={<TinderPage />} />
+          <Route path="/greeting/:qrToken"  element={<GreetingPage />} />
+
+          {/* Placeholders */}
+          <Route path="/profile" element={<PlaceholderPage title="Особистий кабінет" emoji="👤" />} />
+
+          {/* Fallback */}
+          <Route path="*" element={<Navigate to="/catalog" replace />} />
         </Routes>
       </main>
-      <BottomNav />
+
+      {/* BottomNav hidden on checkout, greeting, and tinder (full-screen) */}
+      <Routes>
+        <Route path="/checkout"            element={null} />
+        <Route path="/greeting/:qrToken"   element={null} />
+        <Route path="/tinder"              element={null} />
+        <Route path="*"                    element={<BottomNav />} />
+      </Routes>
     </>
   )
 }
