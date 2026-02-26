@@ -13,6 +13,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from backend.api.routers import webhook as webhook_router
 from backend.api.routers import products as products_router
+from backend.api.routers import orders as orders_router
+from backend.api.routers import payments as payments_router
 from backend.bot.instance import bot, dp
 from backend.bot.setup import setup_dispatcher
 from backend.core.config import settings
@@ -103,6 +105,8 @@ app.add_middleware(
 # ── Routers ───────────────────────────────────────────────────
 app.include_router(webhook_router.router)
 app.include_router(products_router.router)
+app.include_router(orders_router.router)
+app.include_router(payments_router.router)
 
 
 # ── Health Check ──────────────────────────────────────────────

@@ -5,8 +5,8 @@
  *   /          → redirect → /catalog
  *   /catalog   → CatalogPage
  *   /cart      → CartPage
- *   /profile   → placeholder (Sprint 5)
- *   /checkout  → placeholder (Sprint 4)
+ *   /checkout  → CheckoutPage   (Sprint 4)
+ *   /profile   → placeholder    (Sprint 5)
  *
  * Applies Telegram WebApp theme colours to CSS :root so the TWA
  * adapts to the user's Telegram colour scheme automatically.
@@ -17,6 +17,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import BottomNav from '@components/layout/BottomNav'
 import CatalogPage from '@pages/CatalogPage'
 import CartPage from '@pages/CartPage'
+import CheckoutPage from '@pages/CheckoutPage'
 import { useTelegram } from '@hooks/useTelegram'
 
 // ── React Query client ────────────────────────────────────────────────────────
@@ -86,7 +87,7 @@ function AppShell() {
           <Route path="/"         element={<Navigate to="/catalog" replace />} />
           <Route path="/catalog"  element={<CatalogPage />} />
           <Route path="/cart"     element={<CartPage />} />
-          <Route path="/checkout" element={<PlaceholderPage title="Оформлення замовлення" emoji="💳" />} />
+          <Route path="/checkout" element={<CheckoutPage />} />
           <Route path="/profile"  element={<PlaceholderPage title="Особистий кабінет" emoji="👤" />} />
           <Route path="*"         element={<Navigate to="/catalog" replace />} />
         </Routes>

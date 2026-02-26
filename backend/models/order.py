@@ -47,6 +47,8 @@ class Order(Base):
     delivery_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    # Текстовий тайм-слот для відображення: "14:00–16:00"
+    delivery_time_slot: Mapped[str | None] = mapped_column(String(30), nullable=True)
     address: Mapped[str | None] = mapped_column(Text, nullable=True)
     recipient_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
     recipient_phone: Mapped[str | None] = mapped_column(String(20), nullable=True)
@@ -57,6 +59,10 @@ class Order(Base):
     # URL відео або текстової листівки в R2
     greeting_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     comment: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Час підтвердження оплати (None = ще не оплачено)
+    paid_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
