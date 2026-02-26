@@ -1,0 +1,130 @@
+/* ══════════════════════════════════════════════════════════════
+   12 Months — Design Tokens
+   Повна палітра з ТЗ. Використовується скрізь у TWA.
+   ══════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── Кольори ──────────────────────────────────────────────── */
+  --deep:    #0e1a0a;   /* Темно-зелений фон (hero, dialog) */
+  --green:   #1c3610;   /* Primary: кнопки, заголовки, акценти */
+  --mid:     #2d5016;   /* Mid-green: hover стани, градієнти */
+  --light:   #4a7c2f;   /* Light green: іконки, borders active */
+  --sage:    #8aab6e;   /* Sage: другорядні акценти, tags */
+  --sage2:   #b5cea0;   /* Sage light: фони тегів, badges */
+  --cream:   #faf8f2;   /* Основний фон додатку */
+  --cream2:  #f0ebe0;   /* Вторинний фон: картки, inputs */
+  --cream3:  #e8e0d0;   /* Третинний: розділювачі, hover фони */
+  --pink:    #dda8ad;   /* Акцент: серця, кнопка like, events */
+  --pinkl:   #f5dde0;   /* Pink light: фони нотифікацій */
+  --gold:    #c8a84b;   /* Gold: ціни, premium елементи */
+  --goldl:   #f4e3bb;   /* Gold light: фони badge owner */
+  --text:    #1a1a1a;   /* Основний текст */
+  --textm:   #444444;   /* Другорядний текст */
+  --textl:   #888888;   /* Підказки, мета-інфо */
+  --border:  rgba(45, 80, 22, 0.13);  /* Основні рамки */
+  --borderl: rgba(45, 80, 22, 0.07);  /* Легкі розділювачі */
+
+  /* ── Типографіка ────────────────────────────────────────────── */
+  --font-serif: "Cormorant Garamond", Georgia, serif;
+  --font-sans:  "Jost", system-ui, sans-serif;
+  --font-mono:  "DM Mono", monospace;
+
+  /* ── Радіуси ────────────────────────────────────────────────── */
+  --radius-sm:   8px;
+  --radius-md:   12px;
+  --radius-lg:   16px;
+  --radius-xl:   20px;
+  --radius-2xl:  24px;
+  --radius-full: 100px;
+
+  /* ── Тіні ───────────────────────────────────────────────────── */
+  --shadow-card:  0 4px 24px rgba(45, 80, 22, 0.08);
+  --shadow-hover: 0 16px 48px rgba(45, 80, 22, 0.12);
+  --shadow-phone: 0 28px 72px rgba(14, 26, 10, 0.3), 0 0 0 1px rgba(14, 26, 10, 0.4);
+
+  /* ── Transition ─────────────────────────────────────────────── */
+  --transition-fast:   0.15s ease;
+  --transition-normal: 0.25s ease;
+  --transition-slow:   0.35s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ── Z-index ─────────────────────────────────────────────────── */
+  --z-base:    1;
+  --z-overlay: 100;
+  --z-modal:   200;
+  --z-toast:   300;
+
+  /* ── Spacing (доповнення до Tailwind) ───────────────────────── */
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top:    env(safe-area-inset-top, 0px);
+
+  /* ── Telegram WebApp ─────────────────────────────────────────── */
+  /* Overrideable через Telegram.WebApp.themeParams */
+  --tg-bg-color:          var(--cream);
+  --tg-text-color:        var(--text);
+  --tg-hint-color:        var(--textl);
+  --tg-link-color:        var(--light);
+  --tg-button-color:      var(--green);
+  --tg-button-text-color: var(--cream);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Global Reset + Base Styles
+   ══════════════════════════════════════════════════════════════ */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--cream);
+  color: var(--text);
+  overflow-x: hidden;
+  /* Для Telegram Mini App — відключаємо overscroll bounce */
+  overscroll-behavior: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Scrollbar ──────────────────────────────────────────────── */
+::-webkit-scrollbar         { width: 3px; }
+::-webkit-scrollbar-track   { background: var(--cream2); }
+::-webkit-scrollbar-thumb   { background: var(--sage); border-radius: 2px; }
+
+/* ── Selection ───────────────────────────────────────────────── */
+::selection {
+  background: var(--sage2);
+  color: var(--deep);
+}
+
+/* ── Links ───────────────────────────────────────────────────── */
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* ── Images ──────────────────────────────────────────────────── */
+img, svg {
+  display: block;
+  max-width: 100%;
+}
+
+/* ── Buttons reset ───────────────────────────────────────────── */
+button {
+  cursor: pointer;
+  border: none;
+  background: none;
+  font-family: inherit;
+}
+
+/* ── Input reset ─────────────────────────────────────────────── */
+input, textarea, select {
+  font-family: inherit;
+  font-size: inherit;
+}

@@ -1,0 +1,57 @@
+@import "./variables.css";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Telegram Mini App: safe areas ──────────────────────────── */
+.safe-top    { padding-top: var(--safe-top); }
+.safe-bottom { padding-bottom: var(--safe-bottom); }
+
+/* ── Bottom Nav відступ для контенту ────────────────────────── */
+.content-with-nav {
+  padding-bottom: calc(64px + var(--safe-bottom));
+}
+
+/* ── Animations ──────────────────────────────────────────────── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.3; }
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+
+@keyframes slideInLeft {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(0); }
+}
+
+/* ── Typography helpers ──────────────────────────────────────── */
+.font-serif { font-family: var(--font-serif); }
+.font-mono  { font-family: var(--font-mono); }
+
+/* ── Card base ───────────────────────────────────────────────── */
+.card-base {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  transition: transform var(--transition-normal), box-shadow var(--transition-normal);
+}
+.card-base:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-hover);
+}
+
+/* ── Swipe card (Tinder) ─────────────────────────────────────── */
+.swipe-container {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}

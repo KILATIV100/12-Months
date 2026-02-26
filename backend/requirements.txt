@@ -1,0 +1,58 @@
+# ── Telegram Bot ──────────────────────────────────────────────
+aiogram==3.13.1
+aiogram-dialog==2.2.0
+
+# ── Web Framework ─────────────────────────────────────────────
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+python-multipart==0.0.18
+
+# ── Database ──────────────────────────────────────────────────
+sqlalchemy[asyncio]==2.0.36
+alembic==1.14.0
+asyncpg==0.30.0
+psycopg2-binary==2.9.10
+
+# ── Cache / Sessions ──────────────────────────────────────────
+redis[hiredis]==5.2.1
+aioredis==2.0.1
+
+# ── Settings ──────────────────────────────────────────────────
+pydantic==2.10.3
+pydantic-settings==2.6.1
+python-dotenv==1.0.1
+
+# ── HTTP Client ───────────────────────────────────────────────
+httpx==0.28.1
+aiohttp==3.11.10
+
+# ── AI ────────────────────────────────────────────────────────
+anthropic==0.40.0
+
+# ── Payments ──────────────────────────────────────────────────
+liqpay-python==1.0.0
+
+# ── Storage (Cloudflare R2 / S3-compatible) ───────────────────
+boto3==1.35.78
+aiobotocore==2.15.2
+
+# ── QR Codes ──────────────────────────────────────────────────
+qrcode[pil]==8.0
+Pillow==11.0.0
+
+# ── Scheduler ─────────────────────────────────────────────────
+apscheduler==3.10.4
+
+# ── Security ──────────────────────────────────────────────────
+cryptography==44.0.0
+python-jose[cryptography]==3.3.0
+
+# ── Utilities ─────────────────────────────────────────────────
+orjson==3.10.12
+python-slugify==8.0.4
+pytz==2024.2
+
+# ── Dev / Testing ─────────────────────────────────────────────
+pytest==8.3.4
+pytest-asyncio==0.24.0
+httpx==0.28.1
