@@ -3,6 +3,8 @@
 
 Sprint 2: Webhook endpoint wired up; bot handlers registered.
 Sprint 3: Products API router added.
+Sprint 4: Orders + Payments routers added.
+Sprint 5: APScheduler (NPS surveys) integrated.
 """
 import logging
 from contextlib import asynccontextmanager
@@ -20,6 +22,7 @@ from backend.bot.setup import setup_dispatcher
 from backend.core.config import settings
 from backend.core.database import engine
 from backend.core.redis import close_redis, get_redis
+from backend.core.scheduler import setup_scheduler
 
 logging.basicConfig(
     level=logging.INFO,
@@ -74,9 +77,15 @@ async def lifespan(app: FastAPI):
         scope=BotCommandScopeAllPrivateChats(),
     )
 
+    # Start APScheduler (NPS surveys, reminders, etc.)
+    scheduler = setup_scheduler()
+    scheduler.start()
+    logger.info("Scheduler started with %d jobs", len(scheduler.get_jobs()))
+
     yield
 
     # ── Shutdown ──────────────────────────────────────────────
+    scheduler.shutdown(wait=False)
     await bot.delete_webhook()
     await bot.session.close()
     await close_redis()

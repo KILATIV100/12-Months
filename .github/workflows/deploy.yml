@@ -1,0 +1,112 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# GitHub Actions — Deploy to Production VPS
+#
+# Trigger: push to `main` branch
+#
+# Required GitHub Secrets:
+#   VPS_HOST      — server IP or hostname
+#   VPS_USER      — SSH user (e.g., ubuntu or deploy)
+#   VPS_SSH_KEY   — private SSH key (full content of ~/.ssh/id_ed25519)
+#   VPS_PORT      — SSH port (default 22)
+#   VPS_DEPLOY_PATH — absolute path on server (e.g., /opt/12-months)
+#
+# Flow:
+#   1. SSH into VPS
+#   2. git pull latest changes from main
+#   3. Build frontend (npm ci + npm run build)
+#   4. Pull new Docker images if Dockerfile changed
+#   5. Restart backend service (zero-downtime rolling restart)
+#   6. Reload nginx to serve new frontend dist
+# ──────────────────────────────────────────────────────────────────────────────
+
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+
+  # Allow manual trigger from the Actions UI
+  workflow_dispatch:
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false   # never cancel a running deploy
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      # ── 1. Checkout (for potential pre-deploy checks) ──────────────────────
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ── 2. Deploy via SSH ──────────────────────────────────────────────────
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host:     ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key:      ${{ secrets.VPS_SSH_KEY }}
+          port:     ${{ secrets.VPS_PORT || 22 }}
+          # Exit immediately if any command fails
+          script_stop: true
+          script: |
+            set -euo pipefail
+            cd "${{ secrets.VPS_DEPLOY_PATH }}"
+
+            echo "=== [1/5] git pull ==="
+            git fetch origin main
+            git reset --hard origin/main
+
+            echo "=== [2/5] Build frontend ==="
+            cd frontend
+            npm ci --prefer-offline --no-audit
+            npm run build
+            cd ..
+
+            echo "=== [3/5] Pull / build backend image ==="
+            docker compose -f docker-compose.prod.yml build backend
+
+            echo "=== [4/5] Run DB migrations ==="
+            docker compose -f docker-compose.prod.yml run --rm backend \
+              alembic -c backend/alembic.ini upgrade head
+
+            echo "=== [5/5] Restart services ==="
+            docker compose -f docker-compose.prod.yml up -d --remove-orphans backend
+            # Reload nginx config + serve new frontend dist (no full restart needed)
+            docker compose -f docker-compose.prod.yml exec -T nginx nginx -s reload
+
+            echo "=== Deploy complete ==="
+            docker compose -f docker-compose.prod.yml ps
+
+      # ── 3. Smoke-test health endpoint ──────────────────────────────────────
+      - name: Health check
+        run: |
+          sleep 10
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            "https://${{ secrets.VPS_HOST }}/health")
+          if [ "$STATUS" != "200" ]; then
+            echo "Health check failed: HTTP $STATUS"
+            exit 1
+          fi
+          echo "Health check passed: HTTP $STATUS"
+
+      # ── 4. Notify on failure ────────────────────────────────────────────────
+      - name: Notify on failure
+        if: failure()
+        uses: appleboy/telegram-action@master
+        with:
+          to:      ${{ secrets.TELEGRAM_DEPLOY_CHAT_ID }}
+          token:   ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          message: |
+            ❌ *12 Months deploy FAILED*
+
+            Branch: `${{ github.ref_name }}`
+            Commit: `${{ github.sha }}`
+            Actor:  ${{ github.actor }}
+
+            [View workflow](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})

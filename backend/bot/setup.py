@@ -10,6 +10,8 @@ from backend.bot.middlewares.auth import AuthMiddleware
 from backend.bot.handlers.start import router as start_router
 from backend.bot.handlers.admin.products import router as admin_products_router
 from backend.bot.handlers.admin.stock import router as admin_stock_router
+from backend.bot.handlers.admin.orders import router as admin_orders_router
+from backend.bot.handlers.nps import router as nps_router
 
 
 def setup_dispatcher(dp: Dispatcher) -> None:
@@ -23,10 +25,13 @@ def setup_dispatcher(dp: Dispatcher) -> None:
     dp.update.outer_middleware(AuthMiddleware())
 
     # ── Routers ───────────────────────────────────────────────
-    # Admin routers first — they have stricter filters (IsAdmin, IsOwner)
-    # and should take priority over generic user handlers for shared commands
+    # Admin routers first — stricter filters (IsAdmin) take priority
     dp.include_router(admin_products_router)
     dp.include_router(admin_stock_router)
+    dp.include_router(admin_orders_router)
+
+    # NPS router — no role filter, any user can rate their own order
+    dp.include_router(nps_router)
 
     # User-facing router last
     dp.include_router(start_router)

@@ -53,6 +53,11 @@ class OrderRepeatCallback(CallbackData, prefix="order_repeat"):
     order_id: str
 
 
+class NpsCallback(CallbackData, prefix="nps"):
+    score: int      # 1–5 stars
+    order_id: str   # UUID as string
+
+
 # ══════════════════════════════════════════════════════════════
 #  Onboarding Keyboards
 # ══════════════════════════════════════════════════════════════
