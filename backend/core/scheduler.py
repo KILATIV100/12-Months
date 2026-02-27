@@ -7,8 +7,9 @@ Creates a single AsyncIOScheduler instance that is started/stopped
 inside the FastAPI lifespan in backend/main.py.
 
 Jobs registered here:
-  - nps_survey      : every 15 min — NPS rating requests for delivered orders
-  - daily_reminders : daily at 09:00 Kyiv — calendar event push notifications
+  - nps_survey             : every 15 min — NPS rating requests for delivered orders
+  - daily_reminders        : daily at 09:00 Kyiv — calendar event push notifications
+  - subscription_renewals  : daily at 08:00 Kyiv — auto-create orders 2 days before next_delivery
 """
 import logging
 from datetime import date, timedelta
@@ -58,6 +59,21 @@ def setup_scheduler() -> AsyncIOScheduler:
         replace_existing=True,
         max_instances=1,
         misfire_grace_time=300,  # allow up to 5 min late start
+    )
+
+    # ── Subscription renewals: 08:00 Kyiv time ───────────────────────────────
+    # Finds subscriptions due in 2 days → creates Order → sends payment reminder
+    scheduler.add_job(
+        _run_subscription_renewals,
+        trigger=CronTrigger(
+            hour=8,
+            minute=0,
+            timezone="Europe/Kyiv",
+        ),
+        id="subscription_renewals",
+        replace_existing=True,
+        max_instances=1,
+        misfire_grace_time=300,
     )
 
     logger.info("Scheduler configured: %d jobs", len(scheduler.get_jobs()))
@@ -195,3 +211,123 @@ async def _run_daily_reminders() -> None:
         "Daily reminders done — 3-day: %d sent, 1-day: %d sent",
         len(events_3), len(events_1),
     )
+
+
+# ── Subscription renewal job ──────────────────────────────────────────────────
+
+async def _run_subscription_renewals() -> None:
+    """
+    Runs daily at 08:00 Kyiv.
+
+    Algorithm:
+      1. Find active subscriptions where next_delivery == today + 2
+         and (paused_until IS NULL OR paused_until < next_delivery).
+      2. For each: create an Order with subscription_id set.
+      3. Generate a LiqPay checkout URL.
+      4. Send payment reminder push via bot.
+    """
+    import asyncio
+    import uuid
+    from datetime import datetime, timezone
+
+    from sqlalchemy import or_, select
+
+    from backend.api.routers.payments import (
+        LIQPAY_CHECKOUT_URL,
+        _liqpay_encode,
+        _liqpay_sign,
+    )
+    from backend.bot.notifications.subscriptions import send_subscription_payment_reminder
+    from backend.core.config import settings
+    from backend.core.database import AsyncSessionLocal
+    from backend.models.order import Order, OrderItem
+    from backend.models.subscription import Subscription
+    from backend.models.user import User
+
+    today = date.today()
+    target = today + timedelta(days=2)
+
+    logger.info("Subscription renewals started — targeting next_delivery=%s", target)
+
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(
+            select(Subscription).where(
+                Subscription.is_active == True,  # noqa: E712
+                Subscription.next_delivery == target,
+                or_(
+                    Subscription.paused_until == None,   # noqa: E711
+                    Subscription.paused_until < target,
+                ),
+            )
+        )
+        subscriptions = list(result.scalars().all())
+
+        processed = 0
+        for sub in subscriptions:
+            user = await session.get(User, sub.user_id)
+            if not user:
+                continue
+
+            # Create an Order for this subscription delivery
+            delivery_dt = datetime.combine(
+                sub.next_delivery, datetime.min.time()
+            ).replace(tzinfo=timezone.utc)
+
+            order = Order(
+                id=uuid.uuid4(),
+                user_id=sub.user_id,
+                type="ready",
+                total_price=sub.price,
+                status="new",
+                delivery_type="delivery" if sub.address else "pickup",
+                delivery_at=delivery_dt,
+                address=sub.address,
+                recipient_name=user.name,
+                recipient_phone=user.phone,
+                subscription_id=sub.id,
+            )
+            session.add(order)
+
+            if sub.product_id:
+                item = OrderItem(
+                    id=uuid.uuid4(),
+                    order_id=order.id,
+                    product_id=sub.product_id,
+                    quantity=1,
+                    price_at_order=sub.price,
+                )
+                session.add(item)
+
+            await session.flush()  # materialise order.id before building link
+
+            # Generate LiqPay checkout URL
+            if settings.liqpay_public_key and settings.liqpay_private_key:
+                payload = {
+                    "public_key":  settings.liqpay_public_key,
+                    "version":     "3",
+                    "action":      "pay",
+                    "amount":      str(round(float(sub.price), 2)),
+                    "currency":    "UAH",
+                    "description": f"12 Місяців — підписка #{str(order.id)[-6:].upper()}",
+                    "order_id":    str(order.id),
+                    "language":    "uk",
+                    "result_url":  f"{settings.webhook_host}/app/payment/result",
+                    "server_url":  f"{settings.webhook_host}/api/payments/liqpay/callback",
+                }
+                data_b64 = _liqpay_encode(payload)
+                sig = _liqpay_sign(settings.liqpay_private_key, data_b64)
+                checkout_url = f"{LIQPAY_CHECKOUT_URL}?data={data_b64}&signature={sig}"
+            else:
+                checkout_url = f"{settings.webhook_host}/profile"
+
+            await send_subscription_payment_reminder(
+                user=user,
+                subscription=sub,
+                checkout_url=checkout_url,
+            )
+            processed += 1
+            await asyncio.sleep(0.3)  # Telegram flood protection
+
+        await session.commit()
+
+    logger.info("Subscription renewals done — %d orders created", processed)

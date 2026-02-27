@@ -76,6 +76,13 @@ class Order(Base):
     greeting_type: Mapped[str | None] = mapped_column(String(10), nullable=True)
     # Текст вітальної листівки (для типу "text")
     greeting_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Subscription this order was auto-created for (nullable for regular orders)
+    subscription_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("subscriptions.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

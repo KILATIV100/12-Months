@@ -8,22 +8,25 @@
  *   /catalog           → CatalogPage
  *   /cart              → CartPage
  *   /checkout          → CheckoutPage
- *   /tinder            → TinderPage        (Sprint 6 — swipe mode)
- *   /greeting/:qrToken → GreetingPage      (Sprint 6 — public card viewer)
- *   /calendar          → CalendarPage      (Sprint 7 — important dates)
- *   /profile           → placeholder
+ *   /tinder            → TinderPage              (Sprint 6 — swipe mode)
+ *   /greeting/:qrToken → GreetingPage            (Sprint 6 — public card viewer)
+ *   /calendar          → CalendarPage            (Sprint 7 — important dates)
+ *   /profile           → ProfilePage             (Sprint 8 — orders + subscriptions)
+ *   /subscribe         → CreateSubscriptionPage  (Sprint 8 — new subscription form)
  *   *                  → redirect → /catalog
  */
 import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import BottomNav    from '@components/layout/BottomNav'
-import CatalogPage  from '@pages/CatalogPage'
-import CartPage     from '@pages/CartPage'
-import CheckoutPage from '@pages/CheckoutPage'
-import TinderPage   from '@pages/TinderPage'
-import GreetingPage from '@pages/GreetingPage'
-import CalendarPage from '@pages/CalendarPage'
+import BottomNav              from '@components/layout/BottomNav'
+import CatalogPage            from '@pages/CatalogPage'
+import CartPage               from '@pages/CartPage'
+import CheckoutPage           from '@pages/CheckoutPage'
+import TinderPage             from '@pages/TinderPage'
+import GreetingPage           from '@pages/GreetingPage'
+import CalendarPage           from '@pages/CalendarPage'
+import ProfilePage            from '@pages/ProfilePage'
+import CreateSubscriptionPage from '@pages/CreateSubscriptionPage'
 import { useTelegram } from '@hooks/useTelegram'
 
 // ── React Query client ────────────────────────────────────────────────────────
@@ -105,8 +108,9 @@ function AppShell() {
           {/* Sprint 7 */}
           <Route path="/calendar" element={<CalendarPage />} />
 
-          {/* Placeholders */}
-          <Route path="/profile"  element={<PlaceholderPage title="Особистий кабінет" emoji="👤" />} />
+          {/* Sprint 8 */}
+          <Route path="/profile"    element={<ProfilePage />} />
+          <Route path="/subscribe"  element={<CreateSubscriptionPage />} />
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/catalog" replace />} />

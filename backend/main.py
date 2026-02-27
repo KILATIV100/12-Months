@@ -9,6 +9,7 @@ Sprint 4: Orders + Payments routers added.
 Sprint 5: APScheduler (NPS surveys) integrated.
 Sprint 6: Media (greetings/QR) + Swipes (Tinder mode) routers added.
 Sprint 7: Dates (calendar events) router added; daily reminder job registered.
+Sprint 8: Subscriptions router added; subscription renewal scheduler job registered.
 """
 import logging
 from contextlib import asynccontextmanager
@@ -23,7 +24,8 @@ from backend.api.routers import orders   as orders_router
 from backend.api.routers import payments as payments_router
 from backend.api.routers import media    as media_router
 from backend.api.routers import swipes   as swipes_router
-from backend.api.routers import dates    as dates_router
+from backend.api.routers import dates         as dates_router
+from backend.api.routers import subscriptions as subscriptions_router
 from backend.bot.instance import bot, dp
 from backend.bot.setup import setup_dispatcher
 from backend.core.config import settings
@@ -44,7 +46,8 @@ _USER_COMMANDS = [
     BotCommand(command="order",   description="🛒 Зробити замовлення"),
     BotCommand(command="status",  description="📦 Статус останнього замовлення"),
     BotCommand(command="history", description="🗂 Історія замовлень"),
-    BotCommand(command="dates",   description="📅 Мій календар подій"),
+    BotCommand(command="dates",     description="📅 Мій календар подій"),
+    BotCommand(command="subscribe", description="🌸 Квіткова підписка"),
 ]
 
 _ADMIN_COMMANDS = _USER_COMMANDS + [
@@ -123,7 +126,8 @@ app.include_router(orders_router.router)
 app.include_router(payments_router.router)
 app.include_router(media_router.router)    # Sprint 6: greeting cards + QR
 app.include_router(swipes_router.router)   # Sprint 6: Tinder mode
-app.include_router(dates_router.router)    # Sprint 7: calendar events
+app.include_router(dates_router.router)         # Sprint 7: calendar events
+app.include_router(subscriptions_router.router) # Sprint 8: flower subscriptions
 
 
 # ── Health Check ──────────────────────────────────────────────────────────────

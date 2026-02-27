@@ -3,7 +3,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, Date, DateTime, Enum, ForeignKey, Numeric, Text, func
+from sqlalchemy import Boolean, Date, DateTime, Enum, ForeignKey, Numeric, String, Text, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -36,6 +36,8 @@ class Subscription(Base):
         ForeignKey("products.id", ondelete="SET NULL"),
         nullable=True,
     )
+    # Bouquet size when no product_id: "S" | "M" | "L"
+    bouquet_size: Mapped[str | None] = mapped_column(String(2), nullable=True)
     price: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
     # Дата наступної автоматичної доставки
     next_delivery: Mapped[date] = mapped_column(Date, nullable=False)

@@ -18,7 +18,7 @@ import hashlib
 import json
 import logging
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Form, HTTPException, status
@@ -259,6 +259,20 @@ async def liqpay_callback(
     # Mark as paid → transition to in_work
     order.paid_at = datetime.now(tz=timezone.utc)
     order.status = "in_work"
+
+    # ── Advance subscription next_delivery if applicable ────────
+    if order.subscription_id:
+        from backend.models.subscription import Subscription
+        sub = await session.get(Subscription, order.subscription_id)
+        if sub and sub.is_active:
+            delta = timedelta(days=7 if sub.frequency == "weekly" else 14)
+            sub.next_delivery = sub.next_delivery + delta
+            logger.info(
+                "Subscription %s next_delivery advanced to %s",
+                sub.id,
+                sub.next_delivery,
+            )
+
     await session.commit()
     await session.refresh(order)
 
