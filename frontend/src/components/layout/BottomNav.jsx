@@ -1,10 +1,16 @@
 /**
+ * // filepath: frontend/src/components/layout/BottomNav.jsx
+ *
  * BottomNav — fixed bottom navigation bar.
  *
- * Tabs: Головна · Каталог · Кошик · Кабінет
- * The Кошик tab shows a badge with the current item count.
+ * Tabs: Каталог · Тіндер · Кошик · Календар · Кабінет
  *
- * Respects the iOS safe-area-inset-bottom via CSS var(--safe-bottom).
+ * Sprint 7 changes:
+ *   - Added Календар tab (/calendar) — replaces "Головна"
+ *   - Added Тіндер tab (/tinder) for easy access
+ *   - Removed the redundant "/" (home) tab that just redirected to /catalog
+ *
+ * The Кошик tab shows a count badge via useCartCount().
  */
 import { NavLink } from 'react-router-dom'
 import { clsx } from 'clsx'
@@ -13,26 +19,30 @@ import { Badge } from '@components/ui'
 
 const NAV_ITEMS = [
   {
-    to: '/',
-    end: true,
-    label: 'Головна',
-    icon: HomeIcon,
-  },
-  {
-    to: '/catalog',
+    to:    '/catalog',
     label: 'Каталог',
-    icon: CatalogIcon,
+    icon:  CatalogIcon,
   },
   {
-    to: '/cart',
+    to:    '/tinder',
+    label: 'Тіндер',
+    icon:  TinderIcon,
+  },
+  {
+    to:    '/cart',
     label: 'Кошик',
-    icon: CartIcon,
+    icon:  CartIcon,
     badge: true,
   },
   {
-    to: '/profile',
+    to:    '/calendar',
+    label: 'Дати',
+    icon:  CalendarIcon,
+  },
+  {
+    to:    '/profile',
     label: 'Кабінет',
-    icon: ProfileIcon,
+    icon:  ProfileIcon,
   },
 ]
 
@@ -44,13 +54,12 @@ export default function BottomNav() {
       className="fixed bottom-0 left-0 right-0 z-[var(--z-overlay)]"
       style={{ paddingBottom: 'var(--safe-bottom)' }}
     >
-      {/* blur backdrop */}
       <div
         className={clsx(
           'flex items-stretch',
           'bg-[var(--cream)]/90 backdrop-blur-md',
           'border-t border-[var(--border)]',
-          'shadow-[0_-4px_24px_rgba(45,80,22,0.07)]'
+          'shadow-[0_-4px_24px_rgba(45,80,22,0.07)]',
         )}
       >
         {NAV_ITEMS.map(({ to, end, label, icon: Icon, badge }) => (
@@ -66,7 +75,7 @@ export default function BottomNav() {
                 'outline-none select-none',
                 isActive
                   ? 'text-[var(--green)]'
-                  : 'text-[var(--textl)] hover:text-[var(--sage)]'
+                  : 'text-[var(--textl)] hover:text-[var(--sage)]',
               )
             }
           >
@@ -76,7 +85,7 @@ export default function BottomNav() {
                   <Icon
                     className={clsx(
                       'w-5 h-5 transition-transform duration-[var(--transition-fast)]',
-                      isActive && 'scale-110'
+                      isActive && 'scale-110',
                     )}
                     filled={isActive}
                   />
@@ -92,7 +101,7 @@ export default function BottomNav() {
                 <span
                   className={clsx(
                     'text-[10px] leading-none font-medium tracking-wide',
-                    isActive ? 'text-[var(--green)]' : 'text-[var(--textl)]'
+                    isActive ? 'text-[var(--green)]' : 'text-[var(--textl)]',
                   )}
                 >
                   {label}
@@ -107,17 +116,6 @@ export default function BottomNav() {
 }
 
 // ── Inline SVG icons ───────────────────────────────────────────────────────────
-
-function HomeIcon({ className, filled }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={filled ? 0 : 1.8}>
-      {filled
-        ? <path fill="currentColor" d="M10.55 2.533a2 2 0 0 1 2.9 0l7 7.56A2 2 0 0 1 21 11.44V20a2 2 0 0 1-2 2h-4v-5a3 3 0 0 0-6 0v5H5a2 2 0 0 1-2-2v-8.56a2 2 0 0 1 .55-1.347l7-7.56Z" />
-        : <path strokeLinecap="round" strokeLinejoin="round" d="m3 9.5 9-7 9 7V20a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V9.5Z M9 21V12h6v9" />
-      }
-    </svg>
-  )
-}
 
 function CatalogIcon({ className, filled }) {
   return (
@@ -135,6 +133,17 @@ function CatalogIcon({ className, filled }) {
   )
 }
 
+function TinderIcon({ className, filled }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={filled ? 0 : 1.8}>
+      {filled
+        ? <path fill="currentColor" d="M12 21.593c-5.63-5.539-11-10.297-11-14.402 0-3.791 3.068-5.191 5.281-5.191 1.312 0 4.151.501 5.719 4.457 1.59-3.968 4.464-4.447 5.726-4.447 2.54 0 5.274 1.621 5.274 5.181 0 4.069-5.136 8.625-11 14.402Z" />
+        : <path strokeLinecap="round" strokeLinejoin="round" d="M12 21c-5.6-5.5-11-10.3-11-14.4C1 3 4.1 1.6 6.3 1.6c1.3 0 4.1.5 5.7 4.5 1.6-4 4.5-4.4 5.7-4.4C20.2 1.7 23 3.3 23 6.6 23 10.7 17.6 15.5 12 21Z" />
+      }
+    </svg>
+  )
+}
+
 function CartIcon({ className, filled }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={filled ? 0 : 1.8}>
@@ -144,6 +153,25 @@ function CartIcon({ className, filled }) {
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
             <line x1="3" y1="6" x2="21" y2="6" strokeLinecap="round" />
             <path strokeLinecap="round" strokeLinejoin="round" d="M16 10a4 4 0 0 1-8 0" />
+          </>
+      }
+    </svg>
+  )
+}
+
+function CalendarIcon({ className, filled }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={filled ? 0 : 1.8}>
+      {filled
+        ? <path fill="currentColor" d="M8 2a1 1 0 0 1 1 1v1h6V3a1 1 0 1 1 2 0v1h1a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h1V3a1 1 0 0 1 1-1Zm-3 8v9a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-9H5Zm3 3a1 1 0 1 1 2 0 1 1 0 0 1-2 0Zm4 0a1 1 0 1 1 2 0 1 1 0 0 1-2 0Zm4 0a1 1 0 1 1 2 0 1 1 0 0 1-2 0ZM8 17a1 1 0 1 1 2 0 1 1 0 0 1-2 0Zm4 0a1 1 0 1 1 2 0 1 1 0 0 1-2 0Z" />
+        : <>
+            <rect x="3" y="4" width="18" height="18" rx="2" strokeLinecap="round" />
+            <line x1="16" y1="2" x2="16" y2="6" strokeLinecap="round" />
+            <line x1="8"  y1="2" x2="8"  y2="6" strokeLinecap="round" />
+            <line x1="3"  y1="10" x2="21" y2="10" strokeLinecap="round" />
+            <circle cx="8"  cy="15" r="1" fill="currentColor" stroke="none" />
+            <circle cx="12" cy="15" r="1" fill="currentColor" stroke="none" />
+            <circle cx="16" cy="15" r="1" fill="currentColor" stroke="none" />
           </>
       }
     </svg>

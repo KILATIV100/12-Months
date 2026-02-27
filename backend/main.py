@@ -8,6 +8,7 @@ Sprint 3: Products API router added.
 Sprint 4: Orders + Payments routers added.
 Sprint 5: APScheduler (NPS surveys) integrated.
 Sprint 6: Media (greetings/QR) + Swipes (Tinder mode) routers added.
+Sprint 7: Dates (calendar events) router added; daily reminder job registered.
 """
 import logging
 from contextlib import asynccontextmanager
@@ -22,6 +23,7 @@ from backend.api.routers import orders   as orders_router
 from backend.api.routers import payments as payments_router
 from backend.api.routers import media    as media_router
 from backend.api.routers import swipes   as swipes_router
+from backend.api.routers import dates    as dates_router
 from backend.bot.instance import bot, dp
 from backend.bot.setup import setup_dispatcher
 from backend.core.config import settings
@@ -42,9 +44,11 @@ _USER_COMMANDS = [
     BotCommand(command="order",   description="🛒 Зробити замовлення"),
     BotCommand(command="status",  description="📦 Статус останнього замовлення"),
     BotCommand(command="history", description="🗂 Історія замовлень"),
+    BotCommand(command="dates",   description="📅 Мій календар подій"),
 ]
 
 _ADMIN_COMMANDS = _USER_COMMANDS + [
+    BotCommand(command="admin", description="🛠 Адмін-панель"),
     BotCommand(command="add",   description="➕ Додати товар"),
     BotCommand(command="stock", description="🌿 Оновити наявність"),
     BotCommand(command="hide",  description="🚫 Зняти з продажу"),
@@ -63,10 +67,8 @@ async def lifespan(app: FastAPI):
     logger.info("DB URL   — %s", settings.database_url)
     logger.info("Webhook  — %s", settings.webhook_url)
 
-    # Register all middlewares and routers on the Dispatcher
     setup_dispatcher(dp)
 
-    # Register Telegram webhook
     secret = getattr(settings, "webhook_secret", None)
     await bot.set_webhook(
         url=settings.webhook_url,
@@ -76,13 +78,11 @@ async def lifespan(app: FastAPI):
     )
     logger.info("Webhook set: %s", settings.webhook_url)
 
-    # Set visible bot commands
     await bot.set_my_commands(
         commands=_USER_COMMANDS,
         scope=BotCommandScopeAllPrivateChats(),
     )
 
-    # Start APScheduler (NPS surveys, reminders, etc.)
     scheduler = setup_scheduler()
     scheduler.start()
     logger.info("Scheduler started with %d jobs", len(scheduler.get_jobs()))
@@ -123,6 +123,7 @@ app.include_router(orders_router.router)
 app.include_router(payments_router.router)
 app.include_router(media_router.router)    # Sprint 6: greeting cards + QR
 app.include_router(swipes_router.router)   # Sprint 6: Tinder mode
+app.include_router(dates_router.router)    # Sprint 7: calendar events
 
 
 # ── Health Check ──────────────────────────────────────────────────────────────

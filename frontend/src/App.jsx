@@ -10,18 +10,20 @@
  *   /checkout          → CheckoutPage
  *   /tinder            → TinderPage        (Sprint 6 — swipe mode)
  *   /greeting/:qrToken → GreetingPage      (Sprint 6 — public card viewer)
+ *   /calendar          → CalendarPage      (Sprint 7 — important dates)
  *   /profile           → placeholder
  *   *                  → redirect → /catalog
  */
 import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import BottomNav from '@components/layout/BottomNav'
+import BottomNav    from '@components/layout/BottomNav'
 import CatalogPage  from '@pages/CatalogPage'
 import CartPage     from '@pages/CartPage'
 import CheckoutPage from '@pages/CheckoutPage'
 import TinderPage   from '@pages/TinderPage'
 import GreetingPage from '@pages/GreetingPage'
+import CalendarPage from '@pages/CalendarPage'
 import { useTelegram } from '@hooks/useTelegram'
 
 // ── React Query client ────────────────────────────────────────────────────────
@@ -70,14 +72,6 @@ function TelegramThemeSync() {
   return null
 }
 
-// ── Routes that show BottomNav ────────────────────────────────────────────────
-
-const NAV_ROUTES = ['/catalog', '/cart', '/profile', '/tinder']
-
-function shouldShowNav(pathname) {
-  return NAV_ROUTES.some((r) => pathname === r || pathname.startsWith(r + '/'))
-}
-
 // ── App shell ─────────────────────────────────────────────────────────────────
 
 function AppShell() {
@@ -105,18 +99,21 @@ function AppShell() {
           <Route path="/checkout" element={<CheckoutPage />} />
 
           {/* Sprint 6 */}
-          <Route path="/tinder"             element={<TinderPage />} />
-          <Route path="/greeting/:qrToken"  element={<GreetingPage />} />
+          <Route path="/tinder"            element={<TinderPage />} />
+          <Route path="/greeting/:qrToken" element={<GreetingPage />} />
+
+          {/* Sprint 7 */}
+          <Route path="/calendar" element={<CalendarPage />} />
 
           {/* Placeholders */}
-          <Route path="/profile" element={<PlaceholderPage title="Особистий кабінет" emoji="👤" />} />
+          <Route path="/profile"  element={<PlaceholderPage title="Особистий кабінет" emoji="👤" />} />
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/catalog" replace />} />
         </Routes>
       </main>
 
-      {/* BottomNav hidden on checkout, greeting, and tinder (full-screen) */}
+      {/* BottomNav hidden on full-screen pages */}
       <Routes>
         <Route path="/checkout"            element={null} />
         <Route path="/greeting/:qrToken"   element={null} />
