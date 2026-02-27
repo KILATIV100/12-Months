@@ -21,7 +21,7 @@ import useCartStore, { useCartItems, useCartTotal } from '@store/cartStore'
 import { useTelegram } from '@hooks/useTelegram'
 import StepBar from '@components/checkout/StepBar'
 import { Button } from '@components/ui'
-import { createOrder, createPaymentLink } from '@api/orders'
+import { createOrder, createPaymentLink, createCustomOrder } from '@api/orders'
 import { uploadGreeting } from '@api/media'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -141,21 +141,38 @@ export default function CheckoutPage() {
   // ── Order + payment mutation ──────────────────────────────────────────────
   const orderMutation = useMutation({
     mutationFn: async () => {
-      const orderPayload = {
-        items: items.map((i) => ({
-          product_id: i.product.id,
-          quantity: i.quantity,
-        })),
-        delivery_type: deliveryType,
-        address: deliveryType === 'delivery' ? address.trim() : null,
-        delivery_date: deliveryDate || null,
+      const deliveryBase = {
+        delivery_type:      deliveryType,
+        address:            deliveryType === 'delivery' ? address.trim() : null,
+        delivery_date:      deliveryDate || null,
         delivery_time_slot: deliveryType === 'delivery' ? deliveryTimeSlot : null,
-        recipient_name: recipientName.trim(),
-        recipient_phone: recipientPhone.trim(),
-        comment: comment.trim() || null,
+        recipient_name:     recipientName.trim(),
+        recipient_phone:    recipientPhone.trim(),
+        comment:            comment.trim() || null,
       }
 
-      const order   = await createOrder(orderPayload)
+      // Detect if there is a custom bouquet in the cart
+      const customItem = items.find((i) => i.product?.isCustom)
+
+      let order
+      if (customItem) {
+        const cd = customItem.product.customData
+        order = await createCustomOrder({
+          ...deliveryBase,
+          elements:     cd.elements,
+          packaging_id: cd.packagingId ?? null,
+        })
+      } else {
+        const orderPayload = {
+          ...deliveryBase,
+          items: items.map((i) => ({
+            product_id: i.product.id,
+            quantity:   i.quantity,
+          })),
+        }
+        order = await createOrder(orderPayload)
+      }
+
       const payment = await createPaymentLink(order.id)
 
       // Upload greeting if the user added one (non-blocking)

@@ -12,6 +12,7 @@ from backend.core.database import Base
 if TYPE_CHECKING:
     from backend.models.user import User
     from backend.models.product import Product
+    from backend.models.element import BouquetElement
 
 
 class Order(Base):
@@ -114,6 +115,13 @@ class OrderItem(Base):
         ForeignKey("products.id", ondelete="SET NULL"),
         nullable=True,
     )
+    # For custom bouquets built in the 2D constructor
+    element_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("bouquet_elements.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     quantity: Mapped[int] = mapped_column(nullable=False, default=1)
     # Ціна на момент замовлення — не змінюється при редагуванні product
     price_at_order: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
@@ -123,6 +131,7 @@ class OrderItem(Base):
     product: Mapped["Product | None"] = relationship(
         "Product", back_populates="order_items"
     )
+    element: Mapped["BouquetElement | None"] = relationship("BouquetElement")
 
     def __repr__(self) -> str:
         return f"<OrderItem product_id={self.product_id} qty={self.quantity}>"

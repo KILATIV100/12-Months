@@ -7,6 +7,7 @@ Functions:
   analyze_taste()              — taste summary after Tinder swipe session
   generate_event_suggestions() — bouquet picks for an upcoming calendar event
   generate_greeting_text()     — greeting card text generator
+  get_constructor_hint()       — single florist tip for the 2D constructor
 """
 import logging
 from typing import Any
@@ -193,3 +194,65 @@ async def generate_greeting_text(
     except Exception as exc:
         logger.exception("Claude greeting generation failed: %s", exc)
         return "З найщирішими побажаннями та любов'ю!"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  2D Constructor — florist hint
+# ══════════════════════════════════════════════════════════════════════════════
+
+async def get_constructor_hint(
+    flowers_list: list[str],
+    budget: int,
+    occasion: str,
+) -> str:
+    """
+    Ask Claude Haiku for ONE short florist tip (≤ 15 words) for the
+    current bouquet composition in the 2D constructor.
+
+    Args:
+        flowers_list: Human-readable names of elements already in the bouquet
+                      (e.g. ["🌹 Троянда", "🌷 Тюльпан", "🌿 Евкаліпт"]).
+        budget:       Current total price in UAH (packaging + flowers).
+        occasion:     Optional event, e.g. "День народження" or "".
+
+    Returns:
+        A single Ukrainian sentence ≤ 15 words starting with a verb.
+        Falls back to a static hint on any error.
+    """
+    composition = (
+        ", ".join(flowers_list) if flowers_list else "букет ще порожній"
+    )
+    occasion_str = occasion if occasion else "без конкретного приводу"
+
+    prompt = (
+        "Ти флорист у преміум магазині «12 Місяців».\n"
+        f"Склад букету: {composition}\n"
+        f"Бюджет: {budget} грн\n"
+        f"Привід: {occasion_str}\n\n"
+        "Дай ОДНУ коротку пораду до 15 слів — що додати, прибрати або змінити.\n"
+        "Починай з дієслова (Додайте, Спробуйте, Замініть, Поєднайте…).\n"
+        "Відповідь: тільки одне речення, без пояснень."
+    )
+
+    client = _get_client()
+    try:
+        message = await client.messages.create(
+            model=settings.claude_model,
+            max_tokens=64,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        raw = message.content[0].text.strip()
+        # Truncate to first sentence just in case
+        sentence = raw.split(".")[0].strip()
+        return sentence + "." if sentence and not sentence.endswith(".") else sentence
+    except Exception as exc:
+        logger.exception("Claude constructor hint failed: %s", exc)
+        # Static fallback hints
+        fallbacks = [
+            "Додайте евкаліпт для свіжості та обсягу.",
+            "Спробуйте поєднати пастельні та яскраві кольори.",
+            "Додайте піон — він стане акцентом композиції.",
+            "Збалансуйте кількість зелені та квітів 1 до 3.",
+        ]
+        import random
+        return random.choice(fallbacks)

@@ -26,6 +26,8 @@ from backend.api.routers import media    as media_router
 from backend.api.routers import swipes   as swipes_router
 from backend.api.routers import dates         as dates_router
 from backend.api.routers import subscriptions as subscriptions_router
+from backend.api.routers import elements      as elements_router
+from backend.api.routers import ai            as ai_router
 from backend.bot.instance import bot, dp
 from backend.bot.setup import setup_dispatcher
 from backend.core.config import settings
@@ -128,6 +130,8 @@ app.include_router(media_router.router)    # Sprint 6: greeting cards + QR
 app.include_router(swipes_router.router)   # Sprint 6: Tinder mode
 app.include_router(dates_router.router)         # Sprint 7: calendar events
 app.include_router(subscriptions_router.router) # Sprint 8: flower subscriptions
+app.include_router(elements_router.router)      # Sprint 9: bouquet elements (constructor)
+app.include_router(ai_router.router)            # Sprint 9: AI florist hints
 
 
 # ── Health Check ──────────────────────────────────────────────────────────────

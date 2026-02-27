@@ -2,6 +2,7 @@
  * Orders API — client-side functions.
  *
  * createOrder(data)            → POST /api/orders
+ * createCustomOrder(data)      → POST /api/orders/custom  (2D constructor)
  * createPaymentLink(orderId)   → POST /api/payments/create/{orderId}
  * getMyOrders(params)          → GET  /api/orders/my
  * getOrder(orderId)            → GET  /api/orders/{orderId}
@@ -36,6 +37,18 @@ import client from './client'
 export async function createOrder(orderData) {
   const { data } = await client.post('/orders', orderData)
   return data
+}
+
+/**
+ * Create a custom bouquet order from the 2D constructor.
+ * Server recalculates total from element prices — client total is NOT trusted.
+ *
+ * @param {object} data
+ * @returns {Promise<object>}
+ */
+export async function createCustomOrder(data) {
+  const { data: result } = await client.post('/orders/custom', data)
+  return result
 }
 
 /**

@@ -1,12 +1,13 @@
 """Orders API router.
 
-POST /api/orders — create a new order.
-GET  /api/orders/{order_id} — get order details (owner only).
-GET  /api/orders/my — list of current user's orders.
+POST /api/orders        — create a regular catalog order.
+POST /api/orders/custom — create a custom bouquet order from the 2D constructor.
+GET  /api/orders/my     — list current user's orders.
+GET  /api/orders/{id}   — single order details (owner only).
 
 Security:
   Total price is NEVER taken from the client.
-  The server fetches current product prices from the DB and
+  The server fetches current product/element prices from the DB and
   recalculates the total independently.
 """
 import uuid
@@ -23,6 +24,7 @@ from sqlalchemy.orm import selectinload
 from backend.api.security import get_current_twa_user
 from backend.bot.services.notifications import notify_order_created
 from backend.core.database import get_db
+from backend.models.element import BouquetElement
 from backend.models.order import Order, OrderItem
 from backend.models.product import Product
 from backend.models.user import User
@@ -251,6 +253,169 @@ async def create_order(
         total_price=float(order.total_price),
         qr_token=order.qr_token,
         items=items_out,
+    )
+
+
+# ── POST /api/orders/custom ────────────────────────────────────────────────────
+
+
+class CustomElementIn(BaseModel):
+    element_id: uuid.UUID
+    quantity: int = Field(ge=1, le=50)
+
+
+class CustomOrderIn(BaseModel):
+    """Payload for custom bouquets built in the 2D constructor."""
+    elements: list[CustomElementIn] = Field(min_length=1, max_length=100)
+    packaging_id: uuid.UUID | None = None  # selected base/packaging element
+    delivery_type: str = Field(pattern=r"^(pickup|delivery)$")
+    address: str | None = Field(default=None, max_length=500)
+    delivery_date: str | None = Field(default=None, max_length=10)
+    delivery_time_slot: str | None = Field(default=None, max_length=30)
+    recipient_name: str = Field(min_length=1, max_length=100)
+    recipient_phone: str = Field(min_length=7, max_length=20)
+    comment: str | None = Field(default=None, max_length=1000)
+
+
+@router.post("/custom", response_model=OrderOut, status_code=status.HTTP_201_CREATED)
+async def create_custom_order(
+    body: CustomOrderIn,
+    session: Annotated[AsyncSession, Depends(get_db)],
+    tg_user: Annotated[dict, Depends(get_current_twa_user)],
+) -> OrderOut:
+    """
+    Create a custom bouquet order from the 2D constructor.
+
+    All element prices are fetched server-side; the client total is NOT trusted.
+    The order.type is set to 'custom' to distinguish from catalog orders.
+    """
+    db_user = await _resolve_db_user(session, tg_user)
+
+    # ── 1. Load all elements ─────────────────────────────────────────────────
+    all_ids = list({item.element_id for item in body.elements})
+    if body.packaging_id:
+        all_ids.append(body.packaging_id)
+
+    result = await session.execute(
+        select(BouquetElement).where(
+            BouquetElement.id.in_(all_ids),
+            BouquetElement.is_available.is_(True),
+        )
+    )
+    elements_by_id: dict[uuid.UUID, BouquetElement] = {
+        el.id: el for el in result.scalars().all()
+    }
+
+    # ── 2. Validate all elements exist ───────────────────────────────────────
+    missing = [
+        str(item.element_id)
+        for item in body.elements
+        if item.element_id not in elements_by_id
+    ]
+    if missing:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Elements not found or unavailable: {', '.join(missing)}",
+        )
+
+    # ── 3. Server-side price calculation ─────────────────────────────────────
+    total_price = Decimal("0")
+    for item in body.elements:
+        el = elements_by_id[item.element_id]
+        total_price += Decimal(str(el.price_per_unit)) * item.quantity
+
+    if body.packaging_id and body.packaging_id in elements_by_id:
+        packaging_el = elements_by_id[body.packaging_id]
+        total_price += Decimal(str(packaging_el.price_per_unit))
+
+    if total_price < Decimal("50"):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Minimum custom bouquet cost is 50 UAH",
+        )
+
+    # ── 4. Parse delivery_at ──────────────────────────────────────────────────
+    delivery_at: datetime | None = None
+    if body.delivery_date:
+        try:
+            delivery_at = datetime.fromisoformat(body.delivery_date)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Invalid delivery_date format. Use YYYY-MM-DD.",
+            )
+
+    # ── 5. Persist order ──────────────────────────────────────────────────────
+    order = Order(
+        user_id=db_user.id,
+        type="custom",
+        total_price=total_price,
+        status="new",
+        delivery_type=body.delivery_type,
+        delivery_at=delivery_at,
+        delivery_time_slot=body.delivery_time_slot,
+        address=body.address if body.delivery_type == "delivery" else None,
+        recipient_name=body.recipient_name,
+        recipient_phone=body.recipient_phone,
+        comment=body.comment,
+        qr_token=uuid.uuid4(),
+    )
+    session.add(order)
+    await session.flush()
+
+    # Add element items
+    for item in body.elements:
+        el = elements_by_id[item.element_id]
+        order_item = OrderItem(
+            order_id=order.id,
+            element_id=item.element_id,
+            quantity=item.quantity,
+            price_at_order=Decimal(str(el.price_per_unit)),
+        )
+        session.add(order_item)
+
+    # Packaging as a separate item if provided
+    if body.packaging_id and body.packaging_id in elements_by_id:
+        packaging_el = elements_by_id[body.packaging_id]
+        packing_item = OrderItem(
+            order_id=order.id,
+            element_id=body.packaging_id,
+            quantity=1,
+            price_at_order=Decimal(str(packaging_el.price_per_unit)),
+        )
+        session.add(packing_item)
+
+    await session.commit()
+    await session.refresh(order)
+
+    result2 = await session.execute(
+        select(Order)
+        .where(Order.id == order.id)
+        .options(
+            selectinload(Order.items),
+            selectinload(Order.user),
+        )
+    )
+    order = result2.scalar_one()
+    await notify_order_created(order)
+
+    return OrderOut(
+        id=order.id,
+        status=order.status,
+        delivery_type=order.delivery_type,
+        total_price=float(order.total_price),
+        qr_token=order.qr_token,
+        items=[
+            OrderItemOut(
+                product_id=None,
+                product_name=elements_by_id.get(oi.element_id, None) and
+                              elements_by_id[oi.element_id].name
+                              if oi.element_id else None,
+                quantity=oi.quantity,
+                price_at_order=float(oi.price_at_order),
+            )
+            for oi in order.items
+        ],
     )
 
 

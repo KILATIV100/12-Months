@@ -13,6 +13,7 @@
  *   /calendar          → CalendarPage            (Sprint 7 — important dates)
  *   /profile           → ProfilePage             (Sprint 8 — orders + subscriptions)
  *   /subscribe         → CreateSubscriptionPage  (Sprint 8 — new subscription form)
+ *   /constructor       → ConstructorPage         (Sprint 9 — 2D bouquet builder + AI florist)
  *   *                  → redirect → /catalog
  */
 import { useEffect } from 'react'
@@ -27,6 +28,7 @@ import GreetingPage           from '@pages/GreetingPage'
 import CalendarPage           from '@pages/CalendarPage'
 import ProfilePage            from '@pages/ProfilePage'
 import CreateSubscriptionPage from '@pages/CreateSubscriptionPage'
+import ConstructorPage        from '@pages/ConstructorPage'
 import { useTelegram } from '@hooks/useTelegram'
 
 // ── React Query client ────────────────────────────────────────────────────────
@@ -112,6 +114,9 @@ function AppShell() {
           <Route path="/profile"    element={<ProfilePage />} />
           <Route path="/subscribe"  element={<CreateSubscriptionPage />} />
 
+          {/* Sprint 9 */}
+          <Route path="/constructor" element={<ConstructorPage />} />
+
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/catalog" replace />} />
         </Routes>
@@ -122,6 +127,7 @@ function AppShell() {
         <Route path="/checkout"            element={null} />
         <Route path="/greeting/:qrToken"   element={null} />
         <Route path="/tinder"              element={null} />
+        <Route path="/constructor"         element={null} />
         <Route path="*"                    element={<BottomNav />} />
       </Routes>
     </>
