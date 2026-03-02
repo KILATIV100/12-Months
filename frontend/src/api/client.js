@@ -9,7 +9,7 @@ import axios from 'axios'
 const tg = window.Telegram?.WebApp
 
 const client = axios.create({
-  baseURL: '/api',
+  baseURL: import.meta.env.VITE_API_URL || '',
   headers: {
     'Content-Type': 'application/json',
   },
