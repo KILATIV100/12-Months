@@ -15,8 +15,8 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Копіюємо код
-COPY . .
+# Копіюємо код у /app/backend/ щоб `backend.main` був імпортованим
+COPY . ./backend/
 
 # Відкриваємо порт для FastAPI
 EXPOSE 8000
