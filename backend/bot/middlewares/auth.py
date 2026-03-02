@@ -52,6 +52,7 @@ class AuthMiddleware(BaseMiddleware):
                         tg_user.id,
                         exc,
                     )
+                    data["user"] = None
                     await session.rollback()
 
             return await handler(event, data)
