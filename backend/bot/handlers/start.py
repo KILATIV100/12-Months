@@ -16,7 +16,7 @@ Onboarding FSM flow:
 import logging
 
 from aiogram import F, Router
-from aiogram.filters import Command, StateFilter
+from aiogram.filters import Command, CommandObject, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 from sqlalchemy import select
@@ -38,6 +38,8 @@ from backend.models.user import User
 
 logger = logging.getLogger(__name__)
 router = Router(name="user_start")
+
+REFERRAL_BONUS = 50  # бонусів за залучення нового друга
 
 # Human-readable labels for occasion answers
 OCCASION_LABELS: dict[str, str] = {
@@ -72,9 +74,50 @@ async def cmd_start(
     message: Message,
     state: FSMContext,
     user: User,
+    command: CommandObject,
+    session: AsyncSession,
 ) -> None:
-    """Entry point. Clears any active FSM state and shows the main screen."""
+    """Entry point. Clears any active FSM state and shows the main screen.
+
+    Supports deep-links: /start ref_{tg_id}
+    When a new user arrives via a referral link:
+      - records referred_by on the new user
+      - adds REFERRAL_BONUS to the referrer's bonus_balance
+      - sends the referrer a congratulatory notification
+    """
     await state.clear()
+
+    # ── Referral deep-link handling ─────────────────────────────────────────
+    args = command.args or ""
+    if args.startswith("ref_") and user.referred_by is None:
+        try:
+            referrer_tg_id = int(args[4:])
+        except ValueError:
+            referrer_tg_id = None
+
+        if referrer_tg_id and referrer_tg_id != user.tg_id:
+            result = await session.execute(
+                select(User).where(User.tg_id == referrer_tg_id)
+            )
+            referrer = result.scalar_one_or_none()
+            if referrer:
+                user.referred_by = referrer.id
+                referrer.bonus_balance += REFERRAL_BONUS
+                await session.commit()
+                logger.info(
+                    "Referral: new user tg_id=%s came via referrer tg_id=%s (+%d bonuses)",
+                    user.tg_id, referrer_tg_id, REFERRAL_BONUS,
+                )
+                try:
+                    await message.bot.send_message(
+                        referrer_tg_id,
+                        "🎉 За вашим посиланням приєднався новий друг!\n"
+                        f"Вам нараховано <b>{REFERRAL_BONUS} бонусів</b>. "
+                        "1 бонус = 1 грн знижки при наступному замовленні 🌿",
+                        parse_mode="HTML",
+                    )
+                except Exception:
+                    pass  # referrer may have blocked the bot
 
     if user.onboard_answer:
         # Returning user — show main menu immediately

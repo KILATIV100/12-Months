@@ -28,6 +28,7 @@ from backend.api.routers import dates         as dates_router
 from backend.api.routers import subscriptions as subscriptions_router
 from backend.api.routers import elements      as elements_router
 from backend.api.routers import ai            as ai_router
+from backend.api.routers import users         as users_router
 from backend.bot.instance import bot, dp
 from backend.bot.setup import setup_dispatcher
 from backend.core.config import settings
@@ -60,6 +61,7 @@ _ADMIN_COMMANDS = _USER_COMMANDS + [
     BotCommand(command="show",  description="✅ Повернути у продаж"),
     BotCommand(command="price", description="💰 Змінити ціну"),
     BotCommand(command="del",   description="🗑 Видалити товар"),
+    BotCommand(command="stats", description="📊 Статистика магазину"),
 ]
 
 
@@ -132,6 +134,7 @@ app.include_router(dates_router.router)         # Sprint 7: calendar events
 app.include_router(subscriptions_router.router) # Sprint 8: flower subscriptions
 app.include_router(elements_router.router)      # Sprint 9: bouquet elements (constructor)
 app.include_router(ai_router.router)            # Sprint 9: AI florist hints
+app.include_router(users_router.router)         # Sprint 10: user profile + bonuses
 
 
 # ── Health Check ──────────────────────────────────────────────────────────────

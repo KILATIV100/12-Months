@@ -14,6 +14,7 @@ from backend.bot.handlers.start           import router as start_router
 from backend.bot.handlers.admin.products  import router as admin_products_router
 from backend.bot.handlers.admin.stock     import router as admin_stock_router
 from backend.bot.handlers.admin.orders    import router as admin_orders_router
+from backend.bot.handlers.admin.stats     import router as admin_stats_router
 from backend.bot.handlers.nps             import router as nps_router
 from backend.bot.handlers.dates           import router as dates_router
 from backend.bot.handlers.subscribe       import router as subscribe_router
@@ -34,6 +35,7 @@ def setup_dispatcher(dp: Dispatcher) -> None:
     dp.include_router(admin_products_router)
     dp.include_router(admin_stock_router)
     dp.include_router(admin_orders_router)
+    dp.include_router(admin_stats_router)
 
     # NPS router — any user can rate their own order
     dp.include_router(nps_router)

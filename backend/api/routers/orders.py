@@ -57,6 +57,8 @@ class OrderIn(BaseModel):
     recipient_name: str = Field(min_length=1, max_length=100)
     recipient_phone: str = Field(min_length=7, max_length=20)
     comment: str | None = Field(default=None, max_length=1000)
+    # Bonus deduction: 1 bonus = 1 UAH discount (server validates)
+    bonuses_used: int = Field(default=0, ge=0)
 
     @field_validator("address")
     @classmethod
@@ -179,6 +181,17 @@ async def create_order(
         price = Decimal(str(products_by_id[item.product_id].base_price))
         total_price += price * item.quantity
 
+    # ── 3a. Apply bonus deduction ────────────────────────────────
+    bonuses_used = 0
+    if body.bonuses_used > 0:
+        if body.bonuses_used > db_user.bonus_balance:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Insufficient bonus balance: have {db_user.bonus_balance}, requested {body.bonuses_used}",
+            )
+        bonuses_used = body.bonuses_used
+        total_price = max(Decimal("50"), total_price - Decimal(str(bonuses_used)))
+
     # ── 4. Parse delivery_at from date string ───────────────────
     delivery_at: datetime | None = None
     if body.delivery_date:
@@ -195,6 +208,7 @@ async def create_order(
         user_id=db_user.id,
         type="ready",
         total_price=total_price,
+        bonuses_used=bonuses_used,
         status="new",
         delivery_type=body.delivery_type,
         delivery_at=delivery_at,
@@ -217,6 +231,10 @@ async def create_order(
             price_at_order=Decimal(str(product.base_price)),
         )
         session.add(order_item)
+
+    # Deduct bonuses from user balance
+    if bonuses_used > 0:
+        db_user.bonus_balance -= bonuses_used
 
     await session.commit()
     await session.refresh(order)
@@ -275,6 +293,7 @@ class CustomOrderIn(BaseModel):
     recipient_name: str = Field(min_length=1, max_length=100)
     recipient_phone: str = Field(min_length=7, max_length=20)
     comment: str | None = Field(default=None, max_length=1000)
+    bonuses_used: int = Field(default=0, ge=0)
 
 
 @router.post("/custom", response_model=OrderOut, status_code=status.HTTP_201_CREATED)
@@ -334,6 +353,17 @@ async def create_custom_order(
             detail="Minimum custom bouquet cost is 50 UAH",
         )
 
+    # ── 3a. Apply bonus deduction ─────────────────────────────────────────────
+    custom_bonuses_used = 0
+    if body.bonuses_used > 0:
+        if body.bonuses_used > db_user.bonus_balance:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Insufficient bonus balance: have {db_user.bonus_balance}, requested {body.bonuses_used}",
+            )
+        custom_bonuses_used = body.bonuses_used
+        total_price = max(Decimal("50"), total_price - Decimal(str(custom_bonuses_used)))
+
     # ── 4. Parse delivery_at ──────────────────────────────────────────────────
     delivery_at: datetime | None = None
     if body.delivery_date:
@@ -350,6 +380,7 @@ async def create_custom_order(
         user_id=db_user.id,
         type="custom",
         total_price=total_price,
+        bonuses_used=custom_bonuses_used,
         status="new",
         delivery_type=body.delivery_type,
         delivery_at=delivery_at,
@@ -384,6 +415,10 @@ async def create_custom_order(
             price_at_order=Decimal(str(packaging_el.price_per_unit)),
         )
         session.add(packing_item)
+
+    # Deduct bonuses from user balance
+    if custom_bonuses_used > 0:
+        db_user.bonus_balance -= custom_bonuses_used
 
     await session.commit()
     await session.refresh(order)

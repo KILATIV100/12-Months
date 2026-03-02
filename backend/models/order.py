@@ -68,6 +68,8 @@ class Order(Base):
     delivered_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    # Bonuses spent on this order (1 bonus = 1 UAH discount)
+    bonuses_used: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
     # NPS — оцінка якості (1–5 зірок)
     nps_sent: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=False, server_default="false"

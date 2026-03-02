@@ -23,6 +23,8 @@ class Settings(BaseSettings):
     webhook_path: str = "/webhook"
     # Owner Telegram ID для доступу до /stats
     owner_tg_id: int
+    # Bot username for referral links (without @)
+    bot_username: str = ""
 
     @property
     def webhook_url(self) -> str:

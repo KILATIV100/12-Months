@@ -22,6 +22,7 @@ import useConstructorStore, {
   useConstructorPackaging,
 } from '@store/constructorStore'
 import useCartStore from '@store/cartStore'
+import { useTelegram } from '@hooks/useTelegram'
 
 export default function PriceBar() {
   const navigate   = useNavigate()
@@ -31,6 +32,7 @@ export default function PriceBar() {
   const clearAll   = useConstructorStore((s) => s.clearAll)
 
   const addCustomBouquet = useCartStore((s) => s.addCustomBouquet)
+  const { haptic } = useTelegram()
 
   const [added, setAdded] = useState(false)
 
@@ -38,6 +40,7 @@ export default function PriceBar() {
 
   function handleAddToCart() {
     if (isEmpty) return
+    haptic.impact('light')
 
     // Build element list for the API
     const elements = items.map((i) => ({

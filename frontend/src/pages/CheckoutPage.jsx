@@ -16,13 +16,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { clsx } from 'clsx'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import useCartStore, { useCartItems, useCartTotal } from '@store/cartStore'
 import { useTelegram } from '@hooks/useTelegram'
 import StepBar from '@components/checkout/StepBar'
 import { Button } from '@components/ui'
 import { createOrder, createPaymentLink, createCustomOrder } from '@api/orders'
 import { uploadGreeting } from '@api/media'
+import { getUserMe } from '@api/users'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -93,6 +94,13 @@ export default function CheckoutPage() {
   // QR result (filled after successful greeting upload)
   const [qrData, setQrData] = useState(null)
 
+  // Bonus deduction
+  const [useBonuses, setUseBonuses] = useState(false)
+  const { data: me } = useQuery({ queryKey: ['user-me'], queryFn: getUserMe })
+  const bonusBalance  = me?.bonus_balance ?? 0
+  const bonusesUsed   = useBonuses ? Math.min(bonusBalance, Math.max(0, cartTotal - 50)) : 0
+  const finalTotal    = Math.max(50, cartTotal - bonusesUsed)
+
   // Redirect empty cart
   useEffect(() => {
     if (items.length === 0) navigate('/cart', { replace: true })
@@ -161,6 +169,7 @@ export default function CheckoutPage() {
           ...deliveryBase,
           elements:     cd.elements,
           packaging_id: cd.packagingId ?? null,
+          bonuses_used: bonusesUsed,
         })
       } else {
         const orderPayload = {
@@ -169,6 +178,7 @@ export default function CheckoutPage() {
             product_id: i.product.id,
             quantity:   i.quantity,
           })),
+          bonuses_used: bonusesUsed,
         }
         order = await createOrder(orderPayload)
       }
@@ -221,12 +231,12 @@ export default function CheckoutPage() {
   // ── Telegram MainButton ───────────────────────────────────────────────────
   useEffect(() => {
     const isLastStep = step === TOTAL_STEPS
-    const label   = isLastStep ? `Оплатити ${formatPrice(cartTotal)}` : 'Далі →'
+    const label   = isLastStep ? `Оплатити ${formatPrice(finalTotal)}` : 'Далі →'
     const handler = isLastStep ? handlePay : goNext
 
     showMainButton(label, handler, { color: '#1c3610', textColor: '#faf8f2' })
     return () => hideMainButton(handler)
-  }, [step, cartTotal, goNext, handlePay, showMainButton, hideMainButton])
+  }, [step, finalTotal, goNext, handlePay, showMainButton, hideMainButton])
 
   // ── Telegram BackButton ───────────────────────────────────────────────────
   useEffect(() => {
@@ -276,7 +286,17 @@ export default function CheckoutPage() {
           </div>
         )}
 
-        {step === 1 && <Step1Review items={items} total={cartTotal} />}
+        {step === 1 && (
+          <Step1Review
+            items={items}
+            total={cartTotal}
+            bonusBalance={bonusBalance}
+            bonusesUsed={bonusesUsed}
+            useBonuses={useBonuses}
+            setUseBonuses={setUseBonuses}
+            finalTotal={finalTotal}
+          />
+        )}
 
         {step === 2 && (
           <Step2Delivery
@@ -301,7 +321,8 @@ export default function CheckoutPage() {
         {step === 4 && (
           <Step4Summary
             items={items}
-            total={cartTotal}
+            total={finalTotal}
+            bonusesUsed={bonusesUsed}
             deliveryType={deliveryType}
             address={address}
             deliveryDate={deliveryDate}
@@ -327,7 +348,7 @@ export default function CheckoutPage() {
             loading={orderMutation.isPending}
             onClick={step === TOTAL_STEPS ? handlePay : goNext}
           >
-            {step === TOTAL_STEPS ? `Оплатити ${formatPrice(cartTotal)}` : 'Далі →'}
+            {step === TOTAL_STEPS ? `Оплатити ${formatPrice(finalTotal)}` : 'Далі →'}
           </Button>
         </div>
       )}
@@ -337,7 +358,7 @@ export default function CheckoutPage() {
 
 // ── Step 1: Cart Review ───────────────────────────────────────────────────────
 
-function Step1Review({ items, total }) {
+function Step1Review({ items, total, bonusBalance, bonusesUsed, useBonuses, setUseBonuses, finalTotal }) {
   return (
     <div className="space-y-3">
       <SectionTitle>Ваше замовлення</SectionTitle>
@@ -371,6 +392,54 @@ function Step1Review({ items, total }) {
           {formatPrice(total)}
         </span>
       </div>
+
+      {/* Bonus deduction toggle */}
+      {bonusBalance > 0 && (
+        <div
+          className={clsx(
+            'flex items-center justify-between gap-3 rounded-[var(--radius-lg)] border px-4 py-3 transition-colors',
+            useBonuses
+              ? 'bg-[var(--goldl)] border-[var(--gold)]'
+              : 'bg-[var(--cream2)] border-[var(--borderl)]',
+          )}
+        >
+          <div>
+            <p className="text-sm font-medium text-[var(--deep)]">🎁 Використати бонуси</p>
+            <p className="text-xs text-[var(--textm)] mt-0.5">
+              Баланс: <b>{bonusBalance}</b> бонусів
+              {useBonuses && bonusesUsed > 0 && (
+                <span className="text-[var(--green)] font-semibold ml-1">
+                  (−{bonusesUsed} грн)
+                </span>
+              )}
+            </p>
+          </div>
+          <button
+            onClick={() => setUseBonuses((v) => !v)}
+            className={clsx(
+              'relative w-11 h-6 rounded-full transition-colors flex-none',
+              useBonuses ? 'bg-[var(--green)]' : 'bg-[var(--border)]',
+            )}
+            aria-label="Перемкнути бонуси"
+          >
+            <span
+              className={clsx(
+                'absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform',
+                useBonuses ? 'translate-x-5' : 'translate-x-0.5',
+              )}
+            />
+          </button>
+        </div>
+      )}
+
+      {useBonuses && bonusesUsed > 0 && (
+        <div className="flex items-center justify-between px-1">
+          <span className="text-sm font-medium text-[var(--green)]">До сплати після знижки:</span>
+          <span className="text-base font-bold text-[var(--green)]" style={{ fontFamily: 'var(--font-mono)' }}>
+            {formatPrice(finalTotal)}
+          </span>
+        </div>
+      )}
     </div>
   )
 }
@@ -635,7 +704,7 @@ function Step3Recipient({
 // ── Step 4: Summary + Payment ─────────────────────────────────────────────────
 
 function Step4Summary({
-  items, total,
+  items, total, bonusesUsed,
   deliveryType, address, deliveryDate, deliveryTimeSlot,
   recipientName, recipientPhone, comment,
   greetingMode, greetingText, greetingVideo,
@@ -705,6 +774,14 @@ function Step4Summary({
           <p className="text-[10px] text-[var(--textl)] mt-2 break-all">
             {qrData.qr_public_url}
           </p>
+        </div>
+      )}
+
+      {/* Bonus discount row */}
+      {bonusesUsed > 0 && (
+        <div className="flex items-center justify-between px-1">
+          <span className="text-sm text-[var(--green)]">🎁 Бонусна знижка</span>
+          <span className="text-sm font-medium text-[var(--green)]">−{bonusesUsed} грн</span>
         </div>
       )}
 

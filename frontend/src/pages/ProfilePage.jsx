@@ -14,6 +14,7 @@ import { clsx } from 'clsx'
 import { useTelegram } from '@hooks/useTelegram'
 import { getMyOrders } from '@api/orders'
 import { getSubscriptions, updateSubscriptionStatus } from '@api/subscriptions'
+import { getUserMe } from '@api/users'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -228,6 +229,83 @@ function PauseModal({ sub, onConfirm, onClose }) {
   )
 }
 
+// ── Bonus Tab ─────────────────────────────────────────────────────────────────
+
+function BonusTab({ me, meLoading, tg }) {
+  function handleShare() {
+    if (!me?.referral_link) return
+    if (tg) {
+      tg.openTelegramLink(
+        `https://t.me/share/url?url=${encodeURIComponent(me.referral_link)}&text=${encodeURIComponent('🌿 Приєднуйся до 12 Months — преміальна доставка квітів!')}`
+      )
+    } else {
+      navigator.clipboard?.writeText(me.referral_link)
+    }
+  }
+
+  if (meLoading) {
+    return (
+      <div className="flex flex-col gap-4 animate-pulse">
+        <div className="h-28 rounded-2xl bg-[var(--cream3)]" />
+        <div className="h-16 rounded-2xl bg-[var(--cream3)]" />
+        <div className="h-12 rounded-2xl bg-[var(--cream3)]" />
+      </div>
+    )
+  }
+
+  const balance = me?.bonus_balance ?? 0
+
+  return (
+    <div className="flex flex-col gap-4">
+      {/* Balance card */}
+      <div
+        className="rounded-2xl px-5 py-5 flex flex-col gap-1"
+        style={{ background: 'linear-gradient(135deg, var(--green) 0%, var(--mid) 100%)' }}
+      >
+        <p className="text-[var(--cream)] text-xs opacity-80 uppercase tracking-wider">Ваш бонусний баланс</p>
+        <p className="text-[var(--cream)] text-4xl font-bold tabular-nums" style={{ fontFamily: 'var(--font-mono)' }}>
+          {balance}
+        </p>
+        <p className="text-[var(--cream)] text-xs opacity-70 mt-1">1 бонус = 1 грн знижки</p>
+      </div>
+
+      {/* How it works */}
+      <div className="bg-white rounded-2xl border border-[var(--border)] p-4 flex flex-col gap-3">
+        <p className="text-[var(--deep)] text-sm font-semibold">Як це працює?</p>
+        {[
+          { icon: '🔗', text: 'Поділіться реферальним посиланням з другом' },
+          { icon: '🎉', text: 'Коли друг зробить перше замовлення — вам +50 бонусів' },
+          { icon: '🛒', text: 'Списуйте бонуси при оформленні замовлення' },
+        ].map(({ icon, text }) => (
+          <div key={text} className="flex items-start gap-3">
+            <span className="text-xl leading-none mt-0.5">{icon}</span>
+            <p className="text-[var(--textm)] text-sm leading-snug">{text}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Share button */}
+      <button
+        onClick={handleShare}
+        disabled={!me?.referral_link}
+        className={clsx(
+          'w-full py-4 rounded-2xl text-sm font-semibold transition-all',
+          'bg-[var(--gold)] text-white active:scale-95',
+          !me?.referral_link && 'opacity-50 cursor-not-allowed',
+        )}
+      >
+        🎁 Запросити друга
+      </button>
+
+      {me?.referral_link && (
+        <p className="text-[10px] text-[var(--textl)] text-center break-all px-2">
+          {me.referral_link}
+        </p>
+      )}
+    </div>
+  )
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function ProfilePage() {
@@ -246,6 +324,11 @@ export default function ProfilePage() {
   const { data: subs = [], isLoading: subsLoading } = useQuery({
     queryKey: ['subscriptions'],
     queryFn: getSubscriptions,
+  })
+
+  const { data: me, isLoading: meLoading } = useQuery({
+    queryKey: ['user-me'],
+    queryFn: getUserMe,
   })
 
   const statusMutation = useMutation({
@@ -277,10 +360,11 @@ export default function ProfilePage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 px-4 mb-4">
+      <div className="flex gap-2 px-4 mb-4 overflow-x-auto scrollbar-none">
         {[
           { key: 'orders', label: 'Замовлення' },
           { key: 'subs',   label: 'Підписки' },
+          { key: 'bonus',  label: '🎁 Бонуси' },
         ].map(({ key, label }) => (
           <button
             key={key}
@@ -358,6 +442,10 @@ export default function ProfilePage() {
               </button>
             )}
           </>
+        )}
+
+        {tab === 'bonus' && (
+          <BonusTab me={me} meLoading={meLoading} tg={tg} />
         )}
       </div>
 
