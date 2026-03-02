@@ -3,7 +3,7 @@
  *
  * Media / greeting-card API.
  */
-import { apiClient } from './client'
+import client from './client'
 
 /**
  * Upload a text or video greeting for an order.
@@ -28,7 +28,7 @@ export async function uploadGreeting({ orderId, greetingType, greetingText, vide
     form.append('video', videoFile)
   }
 
-  const { data } = await apiClient.post('/api/media/greeting', form, {
+  const { data } = await client.post('/api/media/greeting', form, {
     headers: { 'Content-Type': 'multipart/form-data' },
   })
   return data
@@ -41,6 +41,6 @@ export async function uploadGreeting({ orderId, greetingType, greetingText, vide
  * @returns {{ qr_token, greeting_type, greeting_text, greeting_url, recipient_name, order_id }}
  */
 export async function getGreeting(qrToken) {
-  const { data } = await apiClient.get(`/api/media/greeting/${qrToken}`)
+  const { data } = await client.get(`/api/media/greeting/${qrToken}`)
   return data
 }
