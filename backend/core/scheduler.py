@@ -103,7 +103,7 @@ async def _run_daily_reminders() -> None:
         send_1day_reminder,
         send_3day_reminder,
     )
-    from backend.core.database import async_session_factory
+    from backend.core.database import AsyncSessionLocal as async_session_factory
     from backend.models.date import ImportantDate
     from backend.models.order import Order, OrderItem
     from backend.models.product import Product
