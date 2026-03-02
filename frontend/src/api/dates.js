@@ -3,7 +3,7 @@
  *
  * Important-dates (calendar events) API client.
  */
-import { apiClient } from './client'
+import client from './client'
 
 /**
  * Fetch all active important dates for the current user,
@@ -12,7 +12,7 @@ import { apiClient } from './client'
  * @returns {Promise<DateItem[]>}
  */
 export async function getDates() {
-  const { data } = await apiClient.get('/api/dates')
+  const { data } = await client.get('/api/dates')
   return data
 }
 
@@ -28,7 +28,7 @@ export async function getDates() {
  * @returns {Promise<DateItem>}
  */
 export async function createDate(payload) {
-  const { data } = await apiClient.post('/api/dates', payload)
+  const { data } = await client.post('/api/dates', payload)
   return data
 }
 
@@ -39,7 +39,7 @@ export async function createDate(payload) {
  * @returns {Promise<void>}
  */
 export async function deleteDate(dateId) {
-  await apiClient.delete(`/api/dates/${dateId}`)
+  await client.delete(`/api/dates/${dateId}`)
 }
 
 /**

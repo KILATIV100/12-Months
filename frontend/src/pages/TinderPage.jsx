@@ -16,7 +16,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { useTelegram } from '@hooks/useTelegram'
 import SwipeCard, { SwipeButtons } from '@components/tinder/SwipeCard'
-import { apiClient } from '@api/client'
+import client from '@api/client'
 import { createSwipeSession } from '@api/swipes'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -39,7 +39,7 @@ function formatPrice(n) {
 // ── Fetch products ─────────────────────────────────────────────────────────────
 
 async function fetchTinderProducts() {
-  const { data } = await apiClient.get('/api/products', {
+  const { data } = await client.get('/api/products', {
     params: { available_only: true, limit: CARDS_PER_FETCH, offset: 0 },
   })
   return data.items ?? []

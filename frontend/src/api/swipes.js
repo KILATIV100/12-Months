@@ -3,7 +3,7 @@
  *
  * Swipe / Tinder-mode session API.
  */
-import { apiClient } from './client'
+import client from './client'
 
 /**
  * Submit the result of a Tinder swipe session.
@@ -12,6 +12,6 @@ import { apiClient } from './client'
  * @returns {{ session_id: string, ai_summary: string, recommendations: Product[] }}
  */
 export async function createSwipeSession(payload) {
-  const { data } = await apiClient.post('/api/swipes/session', payload)
+  const { data } = await client.post('/api/swipes/session', payload)
   return data
 }
