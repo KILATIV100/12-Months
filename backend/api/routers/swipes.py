@@ -17,7 +17,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.security import get_current_twa_user
-from backend.core.database import get_session
+from backend.core.database import get_db as get_session
 from backend.models.product import Product
 from backend.models.swipe import SwipeSession
 from backend.models.user import User
