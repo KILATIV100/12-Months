@@ -1,5 +1,5 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import field_validator
+from pydantic import Field, AliasChoices, field_validator
 from typing import Optional
 
 
@@ -31,14 +31,27 @@ class Settings(BaseSettings):
         return f"{self.webhook_host}{self.webhook_path}"
 
     # ── Database (PostgreSQL) ─────────────────────────────────
+    # Підтримує як DATABASE_URL (Railway), так і окремі POSTGRES_* змінні
+    database_url_raw: Optional[str] = Field(
+        default=None,
+        validation_alias=AliasChoices("database_url_raw", "database_url"),
+    )
     postgres_host: str = "localhost"
     postgres_port: int = 5432
     postgres_db: str = "twelve_months"
     postgres_user: str = "postgres"
-    postgres_password: str
+    postgres_password: str = ""
 
     @property
     def database_url(self) -> str:
+        if self.database_url_raw:
+            url = self.database_url_raw
+            # Railway дає postgres:// або postgresql://, asyncpg потребує postgresql+asyncpg://
+            if url.startswith("postgres://"):
+                url = "postgresql+asyncpg://" + url[len("postgres://"):]
+            elif url.startswith("postgresql://"):
+                url = "postgresql+asyncpg://" + url[len("postgresql://"):]
+            return url
         return (
             f"postgresql+asyncpg://{self.postgres_user}:"
             f"{self.postgres_password}@{self.postgres_host}:"
@@ -48,6 +61,15 @@ class Settings(BaseSettings):
     @property
     def database_url_sync(self) -> str:
         """Для Alembic (sync)."""
+        if self.database_url_raw:
+            url = self.database_url_raw
+            if url.startswith("postgres://"):
+                url = "postgresql+psycopg2://" + url[len("postgres://"):]
+            elif url.startswith("postgresql://"):
+                url = "postgresql+psycopg2://" + url[len("postgresql://"):]
+            elif url.startswith("postgresql+asyncpg://"):
+                url = "postgresql+psycopg2://" + url[len("postgresql+asyncpg://"):]
+            return url
         return (
             f"postgresql+psycopg2://{self.postgres_user}:"
             f"{self.postgres_password}@{self.postgres_host}:"
@@ -55,6 +77,11 @@ class Settings(BaseSettings):
         )
 
     # ── Redis ─────────────────────────────────────────────────
+    # Підтримує як REDIS_URL (Railway), так і окремі REDIS_* змінні
+    redis_url_raw: Optional[str] = Field(
+        default=None,
+        validation_alias=AliasChoices("redis_url_raw", "redis_url"),
+    )
     redis_host: str = "localhost"
     redis_port: int = 6379
     redis_password: Optional[str] = None
@@ -62,6 +89,8 @@ class Settings(BaseSettings):
 
     @property
     def redis_url(self) -> str:
+        if self.redis_url_raw:
+            return self.redis_url_raw
         if self.redis_password:
             return f"redis://:{self.redis_password}@{self.redis_host}:{self.redis_port}/{self.redis_db}"
         return f"redis://{self.redis_host}:{self.redis_port}/{self.redis_db}"
