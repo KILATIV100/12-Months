@@ -25,10 +25,38 @@ class Settings(BaseSettings):
     owner_tg_id: int
     # Bot username for referral links (without @)
     bot_username: str = ""
+    # Optional direct URL for Telegram Mini App (if frontend hosted separately)
+    web_app_url: Optional[str] = None
+
+    @field_validator("webhook_host", mode="before")
+    @classmethod
+    def normalize_webhook_host(cls, v: str) -> str:
+        if not isinstance(v, str):
+            return v
+        host = v.strip().rstrip("/")
+        if host and not host.startswith(("http://", "https://")):
+            host = f"https://{host}"
+        return host
+
+    @field_validator("web_app_url", mode="before")
+    @classmethod
+    def normalize_web_app_url(cls, v: Optional[str]) -> Optional[str]:
+        if not isinstance(v, str):
+            return v
+        url = v.strip().rstrip("/")
+        if url and not url.startswith(("http://", "https://")):
+            url = f"https://{url}"
+        return url or None
 
     @property
     def webhook_url(self) -> str:
         return f"{self.webhook_host}{self.webhook_path}"
+
+    @property
+    def telegram_web_app_url(self) -> str:
+        if self.web_app_url:
+            return self.web_app_url
+        return f"{self.webhook_host}/app"
 
     # ── Database (PostgreSQL) ─────────────────────────────────
     # Підтримує як DATABASE_URL (Railway), так і окремі POSTGRES_* змінні
