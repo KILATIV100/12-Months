@@ -102,7 +102,10 @@ def get_occasion_keyboard() -> InlineKeyboardMarkup:
 
 def get_twa_keyboard() -> InlineKeyboardMarkup:
     """Main menu after onboarding — TWA button + quick links."""
-    twa_url = f"{settings.webhook_host}/app"
+    twa_base = settings.webhook_host
+    if twa_base.startswith("http://"):
+        twa_base = "https://" + twa_base[len("http://"):]
+    twa_url = f"{twa_base}/app"
     builder = InlineKeyboardBuilder()
     builder.button(
         text="🌸 Відкрити магазин",

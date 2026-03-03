@@ -47,7 +47,7 @@ def upgrade() -> None:
             "reminder_days",
             postgresql.ARRAY(sa.Integer()),
             nullable=False,
-            server_default="'{3,1}'",
+            server_default=sa.text("ARRAY[3,1]"),
         ),
         # Soft-disable without deleting
         sa.Column(
