@@ -102,7 +102,7 @@ def get_occasion_keyboard() -> InlineKeyboardMarkup:
 
 def get_twa_keyboard() -> InlineKeyboardMarkup:
     """Main menu after onboarding — TWA button + quick links."""
-    twa_url = f"{settings.webhook_host}/app"
+    twa_url = settings.telegram_web_app_url
     builder = InlineKeyboardBuilder()
     builder.button(
         text="🌸 Відкрити магазин",

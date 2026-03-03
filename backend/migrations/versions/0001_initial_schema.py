@@ -46,7 +46,14 @@ def upgrade() -> None:
         sa.Column("phone", sa.String(20), nullable=True),
         sa.Column(
             "role",
-            sa.Enum("user", "florist", "manager", "owner", name="user_role", create_type=False),
+            postgresql.ENUM(
+                "user",
+                "florist",
+                "manager",
+                "owner",
+                name="user_role",
+                create_type=False,
+            ),
             nullable=False,
             server_default="user",
         ),
@@ -123,14 +130,14 @@ def upgrade() -> None:
         ),
         sa.Column(
             "type",
-            sa.Enum("ready", "custom", name="order_type", create_type=False),
+            postgresql.ENUM("ready", "custom", name="order_type", create_type=False),
             nullable=False,
             server_default="ready",
         ),
         sa.Column("total_price", sa.Numeric(10, 2), nullable=False),
         sa.Column(
             "status",
-            sa.Enum(
+            postgresql.ENUM(
                 "new", "in_work", "ready", "delivered", "cancelled",
                 name="order_status",
                 create_type=False,
@@ -140,7 +147,7 @@ def upgrade() -> None:
         ),
         sa.Column(
             "delivery_type",
-            sa.Enum("pickup", "delivery", name="delivery_type", create_type=False),
+            postgresql.ENUM("pickup", "delivery", name="delivery_type", create_type=False),
             nullable=False,
             server_default="pickup",
         ),
