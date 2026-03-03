@@ -26,6 +26,16 @@ class Settings(BaseSettings):
     # Bot username for referral links (without @)
     bot_username: str = ""
 
+    @field_validator("webhook_host", mode="before")
+    @classmethod
+    def normalize_webhook_host(cls, v: str) -> str:
+        if not isinstance(v, str):
+            return v
+        host = v.strip().rstrip("/")
+        if host and not host.startswith(("http://", "https://")):
+            host = f"https://{host}"
+        return host
+
     @property
     def webhook_url(self) -> str:
         return f"{self.webhook_host}{self.webhook_path}"
