@@ -14,6 +14,7 @@ Sprint 8: Subscriptions router added; subscription renewal scheduler job registe
 import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Iterable
 
 from aiogram.types import BotCommandScopeAllPrivateChats, BotCommand
 from fastapi import FastAPI
@@ -45,13 +46,25 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-_FRONTEND_DIST = Path(__file__).resolve().parent.parent / "frontend" / "dist"
+_FRONTEND_DIST_CANDIDATES = [
+    # Repo-style path (e.g. /app/backend/frontend/dist)
+    Path(__file__).resolve().parent.parent / "frontend" / "dist",
+    # Flat path (e.g. /app/frontend/dist)
+    Path(__file__).resolve().parent.parent.parent / "frontend" / "dist",
+]
 
 
-def _resolve_frontend_path(subpath: str) -> Path | None:
-    candidate = (_FRONTEND_DIST / subpath).resolve()
+def _pick_frontend_dist_dir(candidates: Iterable[Path]) -> Path | None:
+    for dist_dir in candidates:
+        if (dist_dir / "index.html").exists():
+            return dist_dir
+    return None
+
+
+def _resolve_frontend_path(dist_dir: Path, subpath: str) -> Path | None:
+    candidate = (dist_dir / subpath).resolve()
     try:
-        candidate.relative_to(_FRONTEND_DIST.resolve())
+        candidate.relative_to(dist_dir.resolve())
     except ValueError:
         return None
     return candidate
@@ -159,18 +172,21 @@ async def telegram_web_app(path: str = ""):
     - Static files under /app/assets/...
     - SPA fallback for client routes (/app/profile, /app/payment/result, etc.)
     """
-    index_file = _FRONTEND_DIST / "index.html"
-    if not index_file.exists():
+    dist_dir = _pick_frontend_dist_dir(_FRONTEND_DIST_CANDIDATES)
+    if dist_dir is None:
+        checked = [str(p) for p in _FRONTEND_DIST_CANDIDATES]
         return JSONResponse(
             status_code=503,
             content={
                 "detail": "Frontend build not found. Build frontend/dist before serving /app.",
+                "checked_paths": checked,
             },
         )
 
+    index_file = dist_dir / "index.html"
     normalized = path.strip("/")
     if normalized:
-        target = _resolve_frontend_path(normalized)
+        target = _resolve_frontend_path(dist_dir, normalized)
         if target and target.exists() and target.is_file():
             return FileResponse(target)
 
