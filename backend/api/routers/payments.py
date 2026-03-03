@@ -147,7 +147,7 @@ async def create_payment_link(
         "description": f"12 Місяців — замовлення #{str(order.id)[-6:].upper()}",
         "order_id":    str(order.id),
         "language":    "uk",
-        "result_url":  f"{settings.webhook_host}/app/payment/result",
+        "result_url":  f"{settings.telegram_web_app_url}/payment/result",
         "server_url":  f"{settings.webhook_host}/api/payments/liqpay/callback",
     }
 

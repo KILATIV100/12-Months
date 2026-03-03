@@ -18,7 +18,7 @@ from typing import Iterable
 
 from aiogram.types import BotCommandScopeAllPrivateChats, BotCommand
 from fastapi import FastAPI
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.api.routers import webhook  as webhook_router
@@ -175,13 +175,13 @@ async def telegram_web_app(path: str = ""):
     dist_dir = _pick_frontend_dist_dir(_FRONTEND_DIST_CANDIDATES)
     if dist_dir is None:
         checked = [str(p) for p in _FRONTEND_DIST_CANDIDATES]
-        return JSONResponse(
-            status_code=503,
-            content={
-                "detail": "Frontend build not found. Build frontend/dist before serving /app.",
-                "checked_paths": checked,
-            },
-        )
+        default_app_url = f"{settings.webhook_host}/app"
+        fallback_url = settings.telegram_web_app_url
+        if fallback_url.rstrip("/") == default_app_url.rstrip("/"):
+            fallback_url = settings.webhook_host
+
+        logger.warning("Frontend dist not found; redirecting /app to %s (checked=%s)", fallback_url, checked)
+        return RedirectResponse(url=fallback_url, status_code=307)
 
     index_file = dist_dir / "index.html"
     normalized = path.strip("/")
