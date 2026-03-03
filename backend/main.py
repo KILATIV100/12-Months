@@ -13,9 +13,11 @@ Sprint 8: Subscriptions router added; subscription renewal scheduler job registe
 """
 import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from aiogram.types import BotCommandScopeAllPrivateChats, BotCommand
 from fastapi import FastAPI
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.api.routers import webhook  as webhook_router
@@ -41,6 +43,18 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
 logger = logging.getLogger(__name__)
+
+
+_FRONTEND_DIST = Path(__file__).resolve().parent.parent / "frontend" / "dist"
+
+
+def _resolve_frontend_path(subpath: str) -> Path | None:
+    candidate = (_FRONTEND_DIST / subpath).resolve()
+    try:
+        candidate.relative_to(_FRONTEND_DIST.resolve())
+    except ValueError:
+        return None
+    return candidate
 
 
 # ── Bot commands registered in Telegram UI ────────────────────────────────────
@@ -135,6 +149,32 @@ app.include_router(subscriptions_router.router) # Sprint 8: flower subscriptions
 app.include_router(elements_router.router)      # Sprint 9: bouquet elements (constructor)
 app.include_router(ai_router.router)            # Sprint 9: AI florist hints
 app.include_router(users_router.router)         # Sprint 10: user profile + bonuses
+
+
+@app.get("/app", include_in_schema=False)
+@app.get("/app/{path:path}", include_in_schema=False)
+async def telegram_web_app(path: str = ""):
+    """Serve Telegram Mini App SPA from frontend/dist.
+
+    - Static files under /app/assets/...
+    - SPA fallback for client routes (/app/profile, /app/payment/result, etc.)
+    """
+    index_file = _FRONTEND_DIST / "index.html"
+    if not index_file.exists():
+        return JSONResponse(
+            status_code=503,
+            content={
+                "detail": "Frontend build not found. Build frontend/dist before serving /app.",
+            },
+        )
+
+    normalized = path.strip("/")
+    if normalized:
+        target = _resolve_frontend_path(normalized)
+        if target and target.exists() and target.is_file():
+            return FileResponse(target)
+
+    return FileResponse(index_file)
 
 
 # ── Health Check ──────────────────────────────────────────────────────────────
