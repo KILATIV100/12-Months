@@ -63,6 +63,20 @@ services:
       - ./backend:/app
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
+
+  # ── Frontend (Telegram Mini App) ────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: twelve_months_frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      backend:
+        condition: service_started
+
   # ── Telegram Bot ──────────────────────────────────────────────
   bot:
     build:

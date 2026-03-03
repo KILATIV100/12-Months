@@ -13,9 +13,12 @@ Sprint 8: Subscriptions router added; subscription renewal scheduler job registe
 """
 import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
+from typing import Iterable
 
 from aiogram.types import BotCommandScopeAllPrivateChats, BotCommand
 from fastapi import FastAPI
+from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.api.routers import webhook  as webhook_router
@@ -41,6 +44,30 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
 logger = logging.getLogger(__name__)
+
+
+_FRONTEND_DIST_CANDIDATES = [
+    # Repo-style path (e.g. /app/backend/frontend/dist)
+    Path(__file__).resolve().parent.parent / "frontend" / "dist",
+    # Flat path (e.g. /app/frontend/dist)
+    Path(__file__).resolve().parent.parent.parent / "frontend" / "dist",
+]
+
+
+def _pick_frontend_dist_dir(candidates: Iterable[Path]) -> Path | None:
+    for dist_dir in candidates:
+        if (dist_dir / "index.html").exists():
+            return dist_dir
+    return None
+
+
+def _resolve_frontend_path(dist_dir: Path, subpath: str) -> Path | None:
+    candidate = (dist_dir / subpath).resolve()
+    try:
+        candidate.relative_to(dist_dir.resolve())
+    except ValueError:
+        return None
+    return candidate
 
 
 # ── Bot commands registered in Telegram UI ────────────────────────────────────
@@ -117,7 +144,7 @@ app = FastAPI(
 # ── CORS ──────────────────────────────────────────────────────────────────────
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.allowed_origins,
     allow_credentials=False,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
     allow_headers=["*"],
@@ -135,6 +162,35 @@ app.include_router(subscriptions_router.router) # Sprint 8: flower subscriptions
 app.include_router(elements_router.router)      # Sprint 9: bouquet elements (constructor)
 app.include_router(ai_router.router)            # Sprint 9: AI florist hints
 app.include_router(users_router.router)         # Sprint 10: user profile + bonuses
+
+
+@app.get("/app", include_in_schema=False)
+@app.get("/app/{path:path}", include_in_schema=False)
+async def telegram_web_app(path: str = ""):
+    """Serve Telegram Mini App SPA from frontend/dist.
+
+    - Static files under /app/assets/...
+    - SPA fallback for client routes (/app/profile, /app/payment/result, etc.)
+    """
+    dist_dir = _pick_frontend_dist_dir(_FRONTEND_DIST_CANDIDATES)
+    if dist_dir is None:
+        checked = [str(p) for p in _FRONTEND_DIST_CANDIDATES]
+        default_app_url = f"{settings.webhook_host}/app"
+        fallback_url = settings.telegram_web_app_url
+        if fallback_url.rstrip("/") == default_app_url.rstrip("/"):
+            fallback_url = settings.webhook_host
+
+        logger.warning("Frontend dist not found; redirecting /app to %s (checked=%s)", fallback_url, checked)
+        return RedirectResponse(url=fallback_url, status_code=307)
+
+    index_file = dist_dir / "index.html"
+    normalized = path.strip("/")
+    if normalized:
+        target = _resolve_frontend_path(dist_dir, normalized)
+        if target and target.exists() and target.is_file():
+            return FileResponse(target)
+
+    return FileResponse(index_file)
 
 
 # ── Health Check ──────────────────────────────────────────────────────────────

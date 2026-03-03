@@ -311,7 +311,7 @@ async def _run_subscription_renewals() -> None:
                     "description": f"12 Місяців — підписка #{str(order.id)[-6:].upper()}",
                     "order_id":    str(order.id),
                     "language":    "uk",
-                    "result_url":  f"{settings.webhook_host}/app/payment/result",
+                    "result_url":  f"{settings.telegram_web_app_url}/payment/result",
                     "server_url":  f"{settings.webhook_host}/api/payments/liqpay/callback",
                 }
                 data_b64 = _liqpay_encode(payload)
