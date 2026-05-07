@@ -1,0 +1,1871 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>12 Months — Технічне Завдання</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,600&family=DM+Mono:wght@300;400;500&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --deep:    #0e1a0a;
+    --green:   #1c3610;
+    --mid:     #2d5016;
+    --light:   #4a7c2f;
+    --sage:    #8aab6e;
+    --sage2:   #b5ceA0;
+    --cream:   #faf8f2;
+    --cream2:  #f0ebe0;
+    --cream3:  #e8e0d0;
+    --pink:    #dda8ad;
+    --pinkl:   #f5dde0;
+    --gold:    #c8a84b;
+    --goldl:   #f4e3bb;
+    --text:    #1a1a1a;
+    --textm:   #444;
+    --textl:   #888;
+    --border:  rgba(45,80,22,0.13);
+    --borderl: rgba(45,80,22,0.07);
+  }
+
+  *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+  html { scroll-behavior:smooth; }
+
+  body {
+    font-family: 'Jost', sans-serif;
+    background: var(--cream);
+    color: var(--text);
+    overflow-x: hidden;
+  }
+
+  ::-webkit-scrollbar { width:3px; }
+  ::-webkit-scrollbar-track { background: var(--cream2); }
+  ::-webkit-scrollbar-thumb { background: var(--sage); border-radius:2px; }
+
+  /* ── NAV ── */
+  nav {
+    position:fixed; top:0; left:0; right:0; z-index:200;
+    background:rgba(14,26,10,0.92);
+    backdrop-filter:blur(24px);
+    border-bottom:1px solid rgba(255,255,255,0.07);
+    padding:14px 48px;
+    display:flex; justify-content:space-between; align-items:center;
+    transform:translateY(-100%);
+    transition:transform 0.35s cubic-bezier(0.4,0,0.2,1);
+  }
+  nav.on { transform:translateY(0); }
+  .nav-logo {
+    font-family:'Cormorant Garamond',serif;
+    font-size:22px; font-weight:300; color:var(--cream);
+    letter-spacing:0.04em;
+  }
+  .nav-logo span { color:var(--gold); font-style:italic; }
+  .nav-links { display:flex; gap:28px; }
+  .nav-links a {
+    font-family:'DM Mono',monospace;
+    font-size:10px; text-transform:uppercase; letter-spacing:0.12em;
+    color:rgba(255,255,255,0.4); text-decoration:none;
+    transition:color 0.2s;
+  }
+  .nav-links a:hover { color:var(--sage); }
+
+  /* ── HERO ── */
+  .hero {
+    min-height:100vh;
+    background:var(--deep);
+    display:grid; grid-template-columns:1fr 1fr;
+    position:relative; overflow:hidden;
+  }
+  .hero::before {
+    content:'';
+    position:absolute; inset:0;
+    background:
+      radial-gradient(ellipse 55% 70% at 75% 25%, rgba(138,171,110,0.12) 0%, transparent 60%),
+      radial-gradient(ellipse 35% 50% at 20% 75%, rgba(200,168,75,0.08) 0%, transparent 55%),
+      radial-gradient(ellipse 80% 40% at 50% 100%, rgba(14,26,10,0.8) 0%, transparent 50%);
+  }
+  /* decorative months in background */
+  .hero-months {
+    position:absolute; right:0; top:0; bottom:0; width:50%;
+    display:flex; flex-direction:column;
+    justify-content:center; gap:0;
+    opacity:0.04;
+    font-family:'Cormorant Garamond',serif;
+    font-size:clamp(24px,3vw,40px);
+    font-weight:300; color:white;
+    padding:60px 48px;
+    pointer-events:none;
+  }
+  .hero-months span { display:block; padding:4px 0; }
+
+  .hero-left {
+    padding:80px 60px;
+    display:flex; flex-direction:column; justify-content:center;
+    position:relative; z-index:2;
+  }
+  .hero-badge {
+    display:inline-flex; align-items:center; gap:10px;
+    background:rgba(200,168,75,0.12);
+    border:1px solid rgba(200,168,75,0.25);
+    border-radius:100px; padding:8px 22px;
+    font-family:'DM Mono',monospace;
+    font-size:10px; letter-spacing:0.14em; text-transform:uppercase;
+    color:var(--gold); width:fit-content; margin-bottom:44px;
+    animation:fadeUp 0.6s ease both;
+  }
+  .hero-badge::before {
+    content:''; width:5px; height:5px;
+    background:var(--gold); border-radius:50%;
+    animation:blink 2s infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  @keyframes fadeUp {
+    from{opacity:0;transform:translateY(18px)}
+    to{opacity:1;transform:translateY(0)}
+  }
+  .hero h1 {
+    font-family:'Cormorant Garamond',serif;
+    font-size:clamp(64px,7vw,110px);
+    font-weight:300; color:var(--cream);
+    line-height:0.9; letter-spacing:-0.02em;
+    animation:fadeUp 0.6s 0.08s ease both;
+  }
+  .hero h1 em { font-style:italic; color:var(--sage); }
+  .hero-sub {
+    font-family:'Cormorant Garamond',serif;
+    font-size:clamp(16px,1.8vw,22px); font-weight:300;
+    color:rgba(255,255,255,0.45); margin-top:16px; margin-bottom:52px;
+    letter-spacing:0.03em;
+    animation:fadeUp 0.6s 0.16s ease both;
+  }
+  .hero-pills {
+    display:flex; gap:12px; flex-wrap:wrap;
+    animation:fadeUp 0.6s 0.24s ease both;
+  }
+  .hero-pill {
+    border:1px solid rgba(255,255,255,0.12);
+    border-radius:100px; padding:8px 20px;
+    font-size:12px; color:rgba(255,255,255,0.55);
+    display:flex; align-items:center; gap:8px;
+  }
+  .hero-pill b { color:var(--cream); font-weight:500; }
+
+  .hero-right {
+    display:flex; align-items:center; justify-content:center;
+    position:relative; z-index:2; padding:60px 48px;
+  }
+  .toc-card {
+    background:rgba(255,255,255,0.04);
+    backdrop-filter:blur(20px);
+    border:1px solid rgba(255,255,255,0.08);
+    border-radius:24px; padding:40px 36px;
+    width:100%; max-width:360px;
+    animation:fadeUp 0.6s 0.12s ease both;
+  }
+  .toc-head {
+    font-family:'DM Mono',monospace;
+    font-size:9px; text-transform:uppercase; letter-spacing:0.18em;
+    color:var(--sage); margin-bottom:24px;
+  }
+  .toc-list { list-style:none; display:flex; flex-direction:column; gap:2px; }
+  .toc-list a {
+    display:flex; align-items:center; gap:14px;
+    padding:11px 14px; border-radius:10px;
+    text-decoration:none; color:rgba(255,255,255,0.55);
+    font-size:13px; transition:all 0.2s;
+  }
+  .toc-list a:hover {
+    background:rgba(255,255,255,0.06); color:var(--cream);
+    padding-left:18px;
+  }
+  .toc-n {
+    font-family:'DM Mono',monospace; font-size:10px;
+    color:var(--gold); min-width:22px;
+  }
+  .toc-divider {
+    height:1px; background:rgba(255,255,255,0.06);
+    margin:8px 0;
+  }
+
+  /* ── MAIN ── */
+  .main { max-width:1220px; margin:0 auto; padding:0 48px; }
+
+  /* ── SECTION ── */
+  .section {
+    padding:96px 0;
+    border-bottom:1px solid var(--border);
+  }
+  .section:last-child { border-bottom:none; }
+
+  .s-head {
+    display:grid; grid-template-columns:72px 1fr;
+    gap:0 36px; align-items:start; margin-bottom:60px;
+  }
+  .s-num {
+    font-family:'DM Mono',monospace; font-size:10px;
+    color:var(--textl); letter-spacing:0.1em;
+    padding-top:10px; text-align:right;
+    border-right:1px solid var(--border);
+    padding-right:28px;
+  }
+  .s-tag {
+    font-family:'DM Mono',monospace; font-size:9px;
+    text-transform:uppercase; letter-spacing:0.18em;
+    color:var(--light); margin-bottom:10px;
+  }
+  .s-title {
+    font-family:'Cormorant Garamond',serif;
+    font-size:clamp(30px,3.5vw,50px); font-weight:400;
+    line-height:1.08; color:var(--green);
+  }
+  .s-title em { font-style:italic; color:var(--sage); }
+
+  /* ── GRID UTILS ── */
+  .g2 { display:grid; grid-template-columns:1fr 1fr; gap:24px; }
+  .g3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:20px; }
+  .g4 { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
+
+  /* ── CARD ── */
+  .card {
+    background:#fff; border:1px solid var(--border);
+    border-radius:20px; overflow:hidden;
+    transition:transform 0.25s, box-shadow 0.25s;
+  }
+  .card:hover {
+    transform:translateY(-3px);
+    box-shadow:0 16px 48px rgba(45,80,22,0.09);
+  }
+  .card-pad { padding:32px; }
+  .card-pad-sm { padding:24px; }
+
+  /* concept cards */
+  .concept-card { position:relative; }
+  .concept-card::before {
+    content:''; position:absolute;
+    top:0; left:0; right:0; height:3px;
+  }
+  .cc1::before { background:linear-gradient(90deg,var(--light),var(--sage)); }
+  .cc2::before { background:linear-gradient(90deg,var(--pink),#c9898e); }
+  .cc3::before { background:linear-gradient(90deg,var(--gold),#e8c870); }
+
+  .c-icon { font-size:30px; margin-bottom:18px; }
+  .c-label {
+    font-family:'DM Mono',monospace; font-size:9px;
+    text-transform:uppercase; letter-spacing:0.14em;
+    color:var(--textl); margin-bottom:6px;
+  }
+  .c-title {
+    font-family:'Cormorant Garamond',serif;
+    font-size:22px; font-weight:600; color:var(--green);
+    margin-bottom:14px; line-height:1.2;
+  }
+  .c-desc { font-size:13px; color:var(--textm); line-height:1.7; margin-bottom:18px; }
+  .c-feats { list-style:none; display:flex; flex-direction:column; gap:7px; }
+  .c-feats li {
+    display:flex; align-items:flex-start; gap:9px;
+    font-size:12.5px; color:var(--textm); line-height:1.5;
+  }
+  .c-feats li::before { content:'→'; color:var(--sage); font-weight:600; flex-shrink:0; }
+
+  /* strategy banner */
+  .strategy-banner {
+    background:linear-gradient(135deg, var(--green) 0%, var(--mid) 100%);
+    border-radius:20px; padding:36px 44px;
+    display:grid; grid-template-columns:auto 1fr; gap:32px; align-items:center;
+    margin-top:24px;
+  }
+  .strategy-icon { font-size:48px; opacity:0.8; }
+  .strategy-text { font-size:16px; color:rgba(255,255,255,0.75); line-height:1.75; }
+  .strategy-text strong { color:var(--sage2); }
+
+  /* ── ARCH ── */
+  .arch-wrap {
+    background:var(--deep); border-radius:24px;
+    padding:52px 56px; position:relative; overflow:hidden;
+  }
+  .arch-wrap::before {
+    content:''; position:absolute; inset:0;
+    background:radial-gradient(ellipse 70% 70% at 85% 20%, rgba(138,171,110,0.08) 0%,transparent 60%);
+  }
+  .arch-row {
+    display:grid; grid-template-columns:110px 1fr;
+    gap:20px; align-items:center; position:relative; z-index:2;
+  }
+  .arch-lbl {
+    font-family:'DM Mono',monospace; font-size:9px;
+    text-transform:uppercase; letter-spacing:0.13em; color:var(--sage);
+  }
+  .arch-boxes { display:flex; gap:10px; flex-wrap:wrap; }
+  .arch-box {
+    background:rgba(255,255,255,0.06);
+    border:1px solid rgba(255,255,255,0.1);
+    border-radius:10px; padding:11px 18px;
+    font-size:12.5px; color:rgba(255,255,255,0.8);
+    display:flex; align-items:center; gap:8px;
+  }
+  .dot { width:5px; height:5px; border-radius:50%; flex-shrink:0; }
+  .dot-g { background:var(--sage); }
+  .dot-p { background:var(--pink); }
+  .dot-y { background:var(--gold); }
+  .arch-sep {
+    text-align:center; color:rgba(255,255,255,0.15);
+    font-size:18px; padding:6px 0; grid-column:1/-1;
+  }
+
+  /* ── STACK ── */
+  .stack-item {
+    background:#fff; border:1px solid var(--border);
+    border-radius:16px; padding:24px;
+    transition:border-color 0.2s;
+  }
+  .stack-item:hover { border-color:var(--sage); }
+  .st-layer {
+    font-family:'DM Mono',monospace; font-size:9px;
+    text-transform:uppercase; letter-spacing:0.12em;
+    color:var(--textl); margin-bottom:6px;
+  }
+  .st-tech { font-size:15px; font-weight:600; color:var(--green); margin-bottom:5px; }
+  .st-why { font-size:12px; color:var(--textl); line-height:1.5; }
+
+  /* ── PHONES ── */
+  .phones-row {
+    display:grid; grid-template-columns:repeat(4,1fr);
+    gap:24px; align-items:end;
+  }
+  .ph-wrap { display:flex; flex-direction:column; align-items:center; gap:14px; }
+  .ph-lbl {
+    font-family:'DM Mono',monospace; font-size:10px;
+    text-transform:uppercase; letter-spacing:0.1em; color:var(--textl);
+    text-align:center;
+  }
+  .ph-frame {
+    background:var(--green); border-radius:30px; padding:10px;
+    width:190px;
+    box-shadow:0 28px 72px rgba(14,26,10,0.3), 0 0 0 1px rgba(14,26,10,0.4);
+  }
+  .ph-screen {
+    background:var(--cream); border-radius:22px;
+    padding:16px 14px; min-height:360px;
+    overflow:hidden;
+  }
+  .ph-notch {
+    width:64px; height:6px; background:var(--green);
+    border-radius:3px; margin:0 auto 14px; opacity:0.25;
+  }
+
+  /* shared screen elements */
+  .sc-bar {
+    display:flex; justify-content:space-between; align-items:center;
+    margin-bottom:14px;
+  }
+  .sc-logo {
+    font-family:'Cormorant Garamond',serif;
+    font-size:17px; font-weight:600; color:var(--green);
+  }
+  .sc-icon {
+    width:26px; height:26px; background:var(--green);
+    border-radius:7px; display:flex;
+    align-items:center; justify-content:center;
+    font-size:12px;
+  }
+
+  /* tinder screen */
+  .swipe-card {
+    background:linear-gradient(160deg, #3d6b20, #1a3a0a);
+    border-radius:14px; height:160px;
+    display:flex; align-items:flex-end; padding:14px;
+    margin-bottom:10px; position:relative; overflow:hidden;
+  }
+  .swipe-card::before {
+    content:'🌸'; position:absolute;
+    top:16px; left:50%; transform:translateX(-50%);
+    font-size:56px; opacity:0.55;
+  }
+  .swipe-info { position:relative; z-index:2; }
+  .swipe-name { font-size:12px; font-weight:600; color:#fff; }
+  .swipe-price { font-size:10px; color:rgba(255,255,255,0.65); }
+  .swipe-btns {
+    display:flex; justify-content:center; gap:18px; margin-top:6px;
+  }
+  .sbtn {
+    width:40px; height:40px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:16px; box-shadow:0 4px 12px rgba(0,0,0,0.12);
+  }
+  .sbtn-no { background:#fff; border:2px solid #ddd; }
+  .sbtn-yes { background:var(--pink); border:2px solid #c9898e; }
+
+  /* constructor screen */
+  .cs-preview {
+    background:linear-gradient(140deg, #e8f5d6, #f5ead0);
+    border-radius:12px; height:110px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:44px; margin-bottom:10px;
+  }
+  .cs-pricebar {
+    background:var(--green); border-radius:9px;
+    padding:9px 12px;
+    display:flex; justify-content:space-between; align-items:center;
+    margin-bottom:10px;
+  }
+  .cs-plbl { font-size:9px; color:var(--sage); }
+  .cs-pval { font-size:13px; font-weight:600; color:#fff; }
+  .cs-chips { display:flex; gap:5px; flex-wrap:wrap; margin-bottom:8px; }
+  .cs-chip {
+    background:#fff; border:1px solid var(--border);
+    border-radius:6px; padding:4px 7px;
+    font-size:9px; color:var(--green);
+    display:flex; align-items:center; gap:3px;
+  }
+  .ai-hint {
+    background:rgba(45,80,22,0.07);
+    border:1px solid rgba(45,80,22,0.12);
+    border-radius:8px; padding:7px 9px;
+    font-size:9px; color:var(--mid); line-height:1.5;
+  }
+
+  /* calendar screen */
+  .cal-head { font-size:11px; font-weight:600; color:var(--green); margin-bottom:10px; }
+  .cal-evt {
+    display:flex; align-items:center; gap:8px;
+    padding:8px; background:#fff;
+    border-radius:8px; margin-bottom:6px;
+    border:1px solid var(--border);
+  }
+  .cal-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+  .cal-en { font-size:10px; font-weight:500; color:var(--green); }
+  .cal-ed { font-size:9px; color:var(--textl); }
+  .cal-push {
+    background:var(--pinkl); border:1px solid var(--pink);
+    border-radius:8px; padding:8px; font-size:9px;
+    color:var(--mid); line-height:1.5;
+  }
+
+  /* admin screen */
+  .adm-menu { display:flex; flex-direction:column; gap:5px; }
+  .adm-row {
+    display:flex; align-items:center; gap:8px;
+    padding:9px 10px; background:#fff;
+    border-radius:9px; border:1px solid var(--border);
+    font-size:11px; color:var(--green);
+  }
+  .adm-badge {
+    margin-left:auto; font-size:9px; font-weight:600;
+    background:var(--pink); color:#fff;
+    border-radius:100px; padding:2px 7px;
+  }
+
+  /* ── FLOWS ── */
+  .flow-card { border:1px solid var(--border); border-radius:20px; overflow:hidden; }
+  .flow-head {
+    background:var(--green); padding:22px 30px;
+    display:flex; align-items:center; gap:14px;
+  }
+  .flow-icon { font-size:22px; }
+  .flow-title {
+    font-family:'Cormorant Garamond',serif;
+    font-size:19px; font-weight:400; color:var(--cream);
+  }
+  .flow-body { padding:28px 30px; background:#fff; }
+  .flow-steps { display:flex; flex-direction:column; gap:0; }
+  .flow-step { display:grid; grid-template-columns:36px 1fr; gap:14px; position:relative; }
+  .flow-step:not(:last-child)::after {
+    content:''; position:absolute;
+    left:17px; top:34px; bottom:-6px;
+    width:1px; background:var(--border);
+  }
+  .flow-n {
+    width:34px; height:34px; border-radius:50%;
+    background:var(--cream2); border:1px solid var(--border);
+    display:flex; align-items:center; justify-content:center;
+    font-family:'DM Mono',monospace; font-size:10px; color:var(--mid);
+    flex-shrink:0;
+  }
+  .flow-c { padding:5px 0 22px; }
+  .flow-ct { font-size:13px; font-weight:600; color:var(--green); margin-bottom:3px; }
+  .flow-cd { font-size:12.5px; color:var(--textm); line-height:1.6; }
+
+  /* ── BOT DIALOG ── */
+  .dialog-wrap {
+    background:var(--deep); border-radius:20px;
+    padding:28px; display:flex; flex-direction:column; gap:10px;
+  }
+  .d-msg { max-width:82%; padding:11px 15px; border-radius:14px; font-size:12.5px; line-height:1.6; }
+  .d-bot {
+    background:rgba(255,255,255,0.09); color:var(--cream);
+    align-self:flex-start; border-bottom-left-radius:3px;
+  }
+  .d-user {
+    background:var(--sage); color:var(--deep);
+    align-self:flex-end; border-bottom-right-radius:3px; font-weight:500;
+  }
+  .d-lbl {
+    background:transparent; border:1px solid rgba(255,255,255,0.08);
+    color:rgba(255,255,255,0.3);
+    font-family:'DM Mono',monospace; font-size:9px;
+    text-align:center; align-self:center;
+    max-width:100%; letter-spacing:0.08em; padding:5px 14px;
+    border-radius:100px;
+  }
+  .d-btns { display:flex; flex-wrap:wrap; gap:6px; align-self:flex-start; max-width:85%; }
+  .d-btn {
+    background:rgba(255,255,255,0.07);
+    border:1px solid rgba(255,255,255,0.14);
+    border-radius:9px; padding:6px 12px;
+    font-size:11px; color:var(--cream);
+  }
+
+  /* ── DB TABLES ── */
+  .db-table { background:#fff; border:1px solid var(--border); border-radius:16px; overflow:hidden; }
+  .db-th { background:var(--green); padding:14px 20px; }
+  .db-th-name {
+    font-family:'DM Mono',monospace; font-size:11px;
+    color:var(--sage); letter-spacing:0.08em;
+  }
+  .db-th-desc { font-size:10px; color:rgba(255,255,255,0.3); margin-top:2px; }
+  .db-body { padding:14px 18px; }
+  .db-f {
+    display:flex; gap:10px; padding:6px 0;
+    border-bottom:1px solid rgba(0,0,0,0.04); font-size:11px;
+  }
+  .db-f:last-child { border-bottom:none; }
+  .db-fn { font-family:'DM Mono',monospace; color:var(--light); min-width:140px; font-size:10.5px; }
+  .db-ft { color:var(--textl); font-size:10.5px; }
+  .db-fk { color:var(--gold); font-size:10.5px; }
+
+  /* ── AI CARDS ── */
+  .ai-card { background:#fff; border:1px solid var(--border); border-radius:20px; overflow:hidden; }
+  .ai-top {
+    background:linear-gradient(135deg, var(--green), var(--mid));
+    padding:22px 24px; position:relative; overflow:hidden;
+  }
+  .ai-top::after {
+    content:'✦'; position:absolute; right:18px; top:50%;
+    transform:translateY(-50%); font-size:36px; opacity:0.15; color:white;
+  }
+  .ai-n { font-family:'DM Mono',monospace; font-size:9px; color:var(--sage); margin-bottom:5px; }
+  .ai-t { font-size:14px; font-weight:600; color:#fff; }
+  .ai-body { padding:22px 24px; }
+  .ai-prompt {
+    background:var(--cream2); border-radius:10px; padding:13px;
+    font-family:'DM Mono',monospace; font-size:10.5px;
+    color:var(--textm); line-height:1.7; margin-bottom:10px;
+  }
+  .ai-var { color:var(--light); }
+  .ai-out { border:1px solid var(--border); border-radius:10px; padding:10px 13px; }
+  .ai-ol { font-family:'DM Mono',monospace; font-size:9px; text-transform:uppercase; letter-spacing:0.1em; color:var(--sage); margin-bottom:4px; }
+  .ai-ov { font-size:12px; color:var(--textm); line-height:1.55; }
+
+  /* ── COMMANDS TABLE ── */
+  .cmd-table { background:#fff; border:1px solid var(--border); border-radius:16px; overflow:hidden; }
+  .cmd-row {
+    display:grid; grid-template-columns:140px 1fr auto;
+    gap:16px; padding:14px 22px; align-items:center;
+    border-bottom:1px solid var(--borderl);
+  }
+  .cmd-row:last-child { border-bottom:none; }
+  .cmd-row:first-child { background:var(--cream2); }
+  .cmd-code {
+    font-family:'DM Mono',monospace; font-size:11px;
+    background:var(--cream2); color:var(--light);
+    padding:3px 10px; border-radius:6px; display:inline-block;
+  }
+  .cmd-desc { font-size:12.5px; color:var(--textm); line-height:1.5; }
+  .cmd-who {
+    font-size:10px; font-weight:600; padding:3px 10px;
+    border-radius:100px; white-space:nowrap;
+  }
+  .who-all { background:var(--sage2); color:var(--deep); }
+  .who-adm { background:var(--goldl); color:#7a5a10; }
+  .who-own { background:var(--pinkl); color:#7a3040; }
+
+  /* ── ACCESS LEVELS ── */
+  .access-wrap { background:#fff; border:1px solid var(--border); border-radius:20px; padding:28px; }
+  .access-item {
+    display:flex; align-items:flex-start; gap:16px;
+    padding:18px 0; border-bottom:1px solid var(--border);
+  }
+  .access-item:last-child { border-bottom:none; }
+  .access-badge {
+    padding:4px 14px; border-radius:100px;
+    font-size:11px; font-weight:600; min-width:90px; text-align:center; flex-shrink:0;
+  }
+  .ab-owner { background:var(--goldl); color:#7a5a10; }
+  .ab-manager { background:var(--cream3); color:var(--green); }
+  .ab-florist { background:var(--pinkl); color:#7a3040; }
+  .access-info h4 { font-size:13.5px; font-weight:600; color:var(--green); margin-bottom:4px; }
+  .access-info p { font-size:12.5px; color:var(--textm); line-height:1.55; }
+
+  /* ── QUICK CMDS ── */
+  .qcmd { display:flex; gap:12px; align-items:flex-start; padding:9px 0; border-bottom:1px solid var(--borderl); }
+  .qcmd:last-child { border-bottom:none; }
+  .qcmd-code {
+    font-family:'DM Mono',monospace; font-size:11px;
+    background:var(--cream2); color:var(--light);
+    padding:4px 10px; border-radius:6px; flex-shrink:0;
+    white-space:nowrap;
+  }
+  .qcmd-d { font-size:12.5px; color:var(--textm); }
+
+  /* ── PHASES ── */
+  .phases-row {
+    display:grid; grid-template-columns:repeat(3,1fr);
+    gap:0; position:relative;
+  }
+  .phases-row::before {
+    content:''; position:absolute;
+    top:24px; left:17%; right:17%;
+    height:1px; background:var(--border); z-index:0;
+  }
+  .phase-item {
+    display:flex; flex-direction:column;
+    align-items:center; text-align:center;
+    padding:0 20px; position:relative; z-index:1;
+  }
+  .phase-dot {
+    width:48px; height:48px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:18px; margin-bottom:18px;
+  }
+  .phase-item:nth-child(1) .phase-dot { background:var(--green); box-shadow:0 0 0 8px rgba(45,80,22,0.1); }
+  .phase-item:nth-child(2) .phase-dot { background:var(--pink); box-shadow:0 0 0 8px rgba(221,168,173,0.2); }
+  .phase-item:nth-child(3) .phase-dot { background:var(--gold); box-shadow:0 0 0 8px rgba(200,168,75,0.15); }
+  .phase-dur {
+    font-family:'DM Mono',monospace; font-size:10px;
+    text-transform:uppercase; letter-spacing:0.1em;
+    color:var(--textl); margin-bottom:6px;
+  }
+  .phase-title {
+    font-family:'Cormorant Garamond',serif;
+    font-size:22px; font-weight:600; color:var(--green); margin-bottom:14px;
+  }
+  .phase-list { list-style:none; display:flex; flex-direction:column; gap:6px; }
+  .phase-list li {
+    font-size:12.5px; color:var(--textm);
+    padding:6px 12px; background:#fff;
+    border:1px solid var(--border); border-radius:8px;
+  }
+
+  /* ── METRICS ── */
+  .metrics-row { display:grid; grid-template-columns:repeat(5,1fr); gap:14px; }
+  .m-card {
+    background:#fff; border:1px solid var(--border);
+    border-radius:16px; padding:26px 18px; text-align:center;
+    transition:transform 0.2s, box-shadow 0.2s;
+  }
+  .m-card:hover { transform:translateY(-2px); box-shadow:0 8px 28px rgba(45,80,22,0.1); }
+  .m-val {
+    font-family:'Cormorant Garamond',serif;
+    font-size:34px; font-weight:600; color:var(--green);
+    line-height:1; margin-bottom:8px;
+  }
+  .m-lbl { font-size:11.5px; color:var(--textl); line-height:1.4; }
+
+  /* ── INFO BOXES ── */
+  .infobox {
+    border-radius:16px; padding:24px 28px;
+    border:1px solid var(--border);
+  }
+  .infobox.warn {
+    background:rgba(221,168,173,0.08);
+    border-color:rgba(221,168,173,0.3);
+  }
+  .infobox.note {
+    background:var(--cream2);
+  }
+  .ib-title { font-size:13px; font-weight:600; color:var(--green); margin-bottom:8px; }
+  .ib-text { font-size:12.5px; color:var(--textm); line-height:1.65; }
+
+  /* ── FOOTER ── */
+  footer {
+    background:var(--deep); padding:56px 48px;
+  }
+  .footer-in {
+    max-width:1220px; margin:0 auto;
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  .footer-logo {
+    font-family:'Cormorant Garamond',serif;
+    font-size:30px; font-weight:300; color:var(--cream);
+  }
+  .footer-logo em { font-style:italic; color:var(--gold); }
+  .footer-meta {
+    font-family:'DM Mono',monospace; font-size:10px;
+    color:rgba(255,255,255,0.2); text-align:right; line-height:2;
+  }
+
+  /* ── DESIGN SYSTEM ── */
+  .palette-row { display:flex; gap:12px; flex-wrap:wrap; }
+  .pal-chip {
+    display:flex; align-items:center; gap:12px;
+    background:#fff; border:1px solid var(--border);
+    border-radius:12px; padding:10px 16px;
+  }
+  .pal-color {
+    width:40px; height:40px; border-radius:9px; flex-shrink:0;
+    border:1px solid rgba(0,0,0,0.07);
+  }
+  .pal-name { font-size:12px; font-weight:500; color:var(--green); }
+  .pal-hex { font-family:'DM Mono',monospace; font-size:10px; color:var(--textl); }
+
+  /* ── CHECKOUT FLOW ── */
+  .checkout-steps {
+    display:grid; grid-template-columns:repeat(4,1fr);
+    gap:0; position:relative;
+  }
+  .checkout-steps::before {
+    content:''; position:absolute;
+    top:20px; left:12.5%; right:12.5%;
+    height:1px; background:var(--border);
+  }
+  .cs-step {
+    display:flex; flex-direction:column;
+    align-items:center; text-align:center; padding:0 16px;
+    position:relative; z-index:1;
+  }
+  .cs-num {
+    width:40px; height:40px; border-radius:50%;
+    background:var(--green); color:#fff;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'DM Mono',monospace; font-size:12px;
+    margin-bottom:14px; flex-shrink:0;
+  }
+  .cs-stitle { font-size:13px; font-weight:600; color:var(--green); margin-bottom:4px; }
+  .cs-sdesc { font-size:11.5px; color:var(--textl); line-height:1.5; }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width:960px) {
+    .hero { grid-template-columns:1fr; }
+    .hero-right { display:none; }
+    .hero-left { padding:60px 28px; }
+    .main { padding:0 20px; }
+    .s-head { grid-template-columns:1fr; }
+    .s-num { text-align:left; border-right:none; border-bottom:1px solid var(--border); padding-right:0; padding-bottom:10px; }
+    .g2,.g3,.g4 { grid-template-columns:1fr; }
+    .phones-row { grid-template-columns:1fr 1fr; }
+    .metrics-row { grid-template-columns:repeat(2,1fr); }
+    .phases-row { grid-template-columns:1fr; }
+    .phases-row::before { display:none; }
+    .checkout-steps { grid-template-columns:repeat(2,1fr); gap:20px; }
+    .checkout-steps::before { display:none; }
+    .arch-wrap { padding:28px 20px; }
+    nav { padding:14px 20px; }
+    .nav-links { display:none; }
+    footer { padding:40px 20px; }
+    .footer-in { flex-direction:column; gap:20px; text-align:center; }
+    .footer-meta { text-align:center; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav id="nav">
+  <div class="nav-logo">12 <span>Months</span></div>
+  <div class="nav-links">
+    <a href="#concept">Концепція</a>
+    <a href="#arch">Архітектура</a>
+    <a href="#ux">UX/UI</a>
+    <a href="#admin">Адмін</a>
+    <a href="#db">БД</a>
+    <a href="#ai">AI</a>
+    <a href="#roadmap">Roadmap</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-months">
+    <span>Січень</span><span>Лютий</span><span>Березень</span>
+    <span>Квітень</span><span>Травень</span><span>Червень</span>
+    <span>Липень</span><span>Серпень</span><span>Вересень</span>
+    <span>Жовтень</span><span>Листопад</span><span>Грудень</span>
+  </div>
+  <div class="hero-left">
+    <div class="hero-badge">Технічне Завдання · v1.0</div>
+    <h1>12<br><em>Months</em></h1>
+    <p class="hero-sub">Telegram Bot + Web App для квіткового магазину</p>
+    <div class="hero-pills">
+      <div class="hero-pill">🤖 <b>aiogram 3</b></div>
+      <div class="hero-pill">⚡ <b>FastAPI</b></div>
+      <div class="hero-pill">🌸 <b>React TWA</b></div>
+      <div class="hero-pill">🤖 <b>Claude AI</b></div>
+      <div class="hero-pill">📦 <b>MVP 4–5 тижнів</b></div>
+    </div>
+  </div>
+  <div class="hero-right">
+    <div class="toc-card">
+      <div class="toc-head">Зміст документу</div>
+      <ul class="toc-list">
+        <li><a href="#concept"><span class="toc-n">01</span>Концепція та стратегія</a></li>
+        <li><a href="#arch"><span class="toc-n">02</span>Архітектура системи</a></li>
+        <li><a href="#stack"><span class="toc-n">03</span>Технологічний стек</a></li>
+        <li><a href="#ux"><span class="toc-n">04</span>UX/UI та екрани</a></li>
+        <div class="toc-divider"></div>
+        <li><a href="#bot"><span class="toc-n">05</span>Bot-команди та флоу</a></li>
+        <li><a href="#admin"><span class="toc-n">06</span>Адмін-панель</a></li>
+        <li><a href="#db"><span class="toc-n">07</span>База даних</a></li>
+        <div class="toc-divider"></div>
+        <li><a href="#ai"><span class="toc-n">08</span>AI-інтеграція</a></li>
+        <li><a href="#roadmap"><span class="toc-n">09</span>Roadmap та метрики</a></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<div class="main">
+
+<!-- ═══════════════════════════════════════════════ 01 КОНЦЕПЦІЯ -->
+<section class="section" id="concept">
+  <div class="s-head">
+    <div class="s-num">01</div>
+    <div>
+      <div class="s-tag">Продуктова концепція</div>
+      <h2 class="s-title">Три напрямки —<br><em>одна екосистема</em></h2>
+    </div>
+  </div>
+
+  <div class="g3" style="margin-bottom:24px;">
+    <div class="card concept-card cc1">
+      <div class="card-pad">
+        <div class="c-icon">🎨</div>
+        <div class="c-label">Концепція 01</div>
+        <div class="c-title">Конструктор Почуттів</div>
+        <p class="c-desc">Користувач не вибирає з каталогу, а "збирає" букет у 2D-інтерфейсі. Ціна оновлюється в реальному часі. AI-флорист підказує гармонійні доповнення.</p>
+        <ul class="c-feats">
+          <li>Вибір основи: крафт / коробка / кошик</li>
+          <li>Додавання квітів поштучно з live-ціною</li>
+          <li>AI аналізує склад і дає одну пораду</li>
+          <li>Підвищує середній чек на 30–40%</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card concept-card cc2">
+      <div class="card-pad">
+        <div class="c-icon">📅</div>
+        <div class="c-label">Концепція 02</div>
+        <div class="c-title">Квітковий Календар</div>
+        <p class="c-desc">Особистий кабінет із важливими датами. Бот нагадує за 3 дні з персональною добіркою на основі попередніх замовлень. Підписки.</p>
+        <ul class="c-feats">
+          <li>Збереження дат: день народження, річниця</li>
+          <li>Push за 3 та 1 день до події</li>
+          <li>Добірка з урахуванням історії покупок</li>
+          <li>Абонемент: букет щотижня / щодва тижні</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card concept-card cc3">
+      <div class="card-pad">
+        <div class="c-icon">💘</div>
+        <div class="c-label">Концепція 03</div>
+        <div class="c-title">Квітковий Тіндер</div>
+        <p class="c-desc">Гейміфікований вибір через свайпи. Після 10–15 свайпів AI визначає смак і пропонує ідеальний букет. Відео-листівки через QR-код.</p>
+        <ul class="c-feats">
+          <li>Свайп вправо / вліво без реєстрації</li>
+          <li>Алгоритм визначає смак: колір, форма, стиль</li>
+          <li>Відео або текстова листівка → QR у букеті</li>
+          <li>Точка входу: без тертя, без форм</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="strategy-banner">
+    <div class="strategy-icon">🌿</div>
+    <div class="strategy-text">
+      Не обираємо одну концепцію — будуємо єдину екосистему.
+      <strong>Тіндер</strong> — точка входу (легко, весело, без реєстрації).
+      <strong>Конструктор</strong> — для просунутих, підвищує чек.
+      <strong>Календар</strong> — утримання клієнта та повторні покупки протягом усіх <strong>12 місяців року</strong>.
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════ 02 АРХІТЕКТУРА -->
+<section class="section" id="arch">
+  <div class="s-head">
+    <div class="s-num">02</div>
+    <div>
+      <div class="s-tag">Системний дизайн</div>
+      <h2 class="s-title">Архітектура<br><em>системи</em></h2>
+    </div>
+  </div>
+
+  <div class="arch-wrap">
+    <div style="display:flex;flex-direction:column;gap:16px;position:relative;z-index:2;">
+      <div class="arch-row">
+        <div class="arch-lbl">Telegram Bot<br><span style="color:rgba(255,255,255,0.2);font-size:8px;">aiogram 3</span></div>
+        <div class="arch-boxes">
+          <div class="arch-box"><span class="dot dot-g"></span>Онбординг</div>
+          <div class="arch-box"><span class="dot dot-g"></span>Push-нагадування</div>
+          <div class="arch-box"><span class="dot dot-g"></span>Статус замовлення</div>
+          <div class="arch-box"><span class="dot dot-g"></span>FSM-стани</div>
+          <div class="arch-box"><span class="dot dot-g"></span>Адмін-панель</div>
+          <div class="arch-box"><span class="dot dot-g"></span>Scheduler (APScheduler)</div>
+        </div>
+      </div>
+      <div class="arch-sep">↕ відкриває WebApp / приймає callbacks</div>
+      <div class="arch-row">
+        <div class="arch-lbl">TWA Frontend<br><span style="color:rgba(255,255,255,0.2);font-size:8px;">React + Vite</span></div>
+        <div class="arch-boxes">
+          <div class="arch-box"><span class="dot dot-p"></span>Тіндер-вибір</div>
+          <div class="arch-box"><span class="dot dot-p"></span>2D Конструктор</div>
+          <div class="arch-box"><span class="dot dot-p"></span>Каталог / Пошук</div>
+          <div class="arch-box"><span class="dot dot-p"></span>Кошик + Checkout</div>
+          <div class="arch-box"><span class="dot dot-p"></span>Особистий кабінет</div>
+          <div class="arch-box"><span class="dot dot-p"></span>Відео-листівки</div>
+        </div>
+      </div>
+      <div class="arch-sep">↕ REST API + WebSocket (замовлення live)</div>
+      <div class="arch-row">
+        <div class="arch-lbl">Backend<br><span style="color:rgba(255,255,255,0.2);font-size:8px;">FastAPI</span></div>
+        <div class="arch-boxes">
+          <div class="arch-box"><span class="dot dot-y"></span>FastAPI</div>
+          <div class="arch-box"><span class="dot dot-y"></span>PostgreSQL</div>
+          <div class="arch-box"><span class="dot dot-y"></span>Redis</div>
+          <div class="arch-box"><span class="dot dot-y"></span>Claude API</div>
+          <div class="arch-box"><span class="dot dot-y"></span>Cloudflare R2</div>
+          <div class="arch-box"><span class="dot dot-y"></span>LiqPay / Monobank</div>
+          <div class="arch-box"><span class="dot dot-y"></span>qrcode lib</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:24px;" class="g2">
+    <div class="infobox note">
+      <div class="ib-title">📡 Webhook vs Polling</div>
+      <p class="ib-text">Бот працює на <strong>webhook</strong> (не polling). При старті FastAPI-сервер реєструє webhook у Telegram. Це критично для продакшну — polling не підходить при великому навантаженні та не працює зі сторонніми хостами.</p>
+    </div>
+    <div class="infobox note">
+      <div class="ib-title">🔄 TWA ↔ Bot зв'язок</div>
+      <p class="ib-text">TWA передає дані боту через <code style="font-family:'DM Mono',monospace;font-size:11px;background:var(--cream3);padding:1px 6px;border-radius:4px;">Telegram.WebApp.sendData()</code>. Для підтвердження оплати та статусу — бот надсилає повідомлення напряму в чат користувача через <code style="font-family:'DM Mono',monospace;font-size:11px;background:var(--cream3);padding:1px 6px;border-radius:4px;">bot.send_message()</code>.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════ 03 СТЕК -->
+<section class="section" id="stack">
+  <div class="s-head">
+    <div class="s-num">03</div>
+    <div>
+      <div class="s-tag">Технології</div>
+      <h2 class="s-title">Технологічний<br><em>стек</em></h2>
+    </div>
+  </div>
+
+  <div class="g4" style="margin-bottom:24px;">
+    <div class="stack-item">
+      <div class="st-layer">Bot Layer</div>
+      <div class="st-tech">aiogram 3.x</div>
+      <div class="st-why">Найкраща підтримка TWA, FSM для multi-step флоу, async від початку</div>
+    </div>
+    <div class="stack-item">
+      <div class="st-layer">TWA Frontend</div>
+      <div class="st-tech">React + Vite</div>
+      <div class="st-why">Швидкий білд, компонентна архітектура, Tailwind для стилів</div>
+    </div>
+    <div class="stack-item">
+      <div class="st-layer">Анімації / Свайпи</div>
+      <div class="st-tech">Framer Motion</div>
+      <div class="st-why">Drag-свайпи для Тіндера, плавні переходи, 2D-конструктор</div>
+    </div>
+    <div class="stack-item">
+      <div class="st-layer">Backend API</div>
+      <div class="st-tech">FastAPI</div>
+      <div class="st-why">Та сама мова що й бот (Python), async, автодокументація /docs</div>
+    </div>
+    <div class="stack-item">
+      <div class="st-layer">База даних</div>
+      <div class="st-tech">PostgreSQL</div>
+      <div class="st-why">SQLAlchemy ORM, Alembic міграції, JSONB для тегів та history</div>
+    </div>
+    <div class="stack-item">
+      <div class="st-layer">Кеш / Черги</div>
+      <div class="st-tech">Redis</div>
+      <div class="st-why">Сесії кошика, rate limiting, Celery beat для scheduler</div>
+    </div>
+    <div class="stack-item">
+      <div class="st-layer">AI</div>
+      <div class="st-tech">Claude API</div>
+      <div class="st-why">Гармонія конструктора, аналіз свайпів, персональні добірки</div>
+    </div>
+    <div class="stack-item">
+      <div class="st-layer">Медіа + QR</div>
+      <div class="st-tech">R2 + qrcode</div>
+      <div class="st-why">Cloudflare R2 для фото/відео, Python qrcode для листівок</div>
+    </div>
+  </div>
+
+  <div class="infobox note">
+    <div class="ib-title">🐳 Деплой</div>
+    <p class="ib-text">Docker Compose: bot + fastapi + postgres + redis в окремих контейнерах. Railway або VPS (Ubuntu). NGINX як reverse proxy. SSL через Let's Encrypt. CI/CD через GitHub Actions.</p>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════ 04 UX/UI -->
+<section class="section" id="ux">
+  <div class="s-head">
+    <div class="s-num">04</div>
+    <div>
+      <div class="s-tag">Дизайн-система</div>
+      <h2 class="s-title">UX/UI та<br><em>екрани додатку</em></h2>
+    </div>
+  </div>
+
+  <!-- Design System -->
+  <div class="g2" style="margin-bottom:48px;">
+    <div class="card">
+      <div class="card-pad">
+        <div class="s-tag" style="margin-bottom:20px;">Палітра кольорів</div>
+        <div class="palette-row">
+          <div class="pal-chip">
+            <div class="pal-color" style="background:#1c3610;"></div>
+            <div><div class="pal-name">Primary</div><div class="pal-hex">#1C3610</div></div>
+          </div>
+          <div class="pal-chip">
+            <div class="pal-color" style="background:#8aab6e;"></div>
+            <div><div class="pal-name">Sage</div><div class="pal-hex">#8AAB6E</div></div>
+          </div>
+          <div class="pal-chip">
+            <div class="pal-color" style="background:#dda8ad;"></div>
+            <div><div class="pal-name">Pink</div><div class="pal-hex">#DDA8AD</div></div>
+          </div>
+          <div class="pal-chip">
+            <div class="pal-color" style="background:#c8a84b;"></div>
+            <div><div class="pal-name">Gold</div><div class="pal-hex">#C8A84B</div></div>
+          </div>
+          <div class="pal-chip">
+            <div class="pal-color" style="background:#faf8f2; border:1px solid #eee;"></div>
+            <div><div class="pal-name">Cream</div><div class="pal-hex">#FAF8F2</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-pad">
+        <div class="s-tag" style="margin-bottom:20px;">Типографіка</div>
+        <div style="display:flex;flex-direction:column;gap:20px;">
+          <div>
+            <div style="font-family:'Cormorant Garamond',serif;font-size:30px;font-weight:300;color:var(--green);line-height:1;">Cormorant Garamond</div>
+            <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--textl);margin-top:4px;letter-spacing:0.12em;text-transform:uppercase;">Заголовки — елегантна, модна</div>
+          </div>
+          <div>
+            <div style="font-family:'Jost',sans-serif;font-size:18px;color:var(--textm);">Jost Regular 400 / 500</div>
+            <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--textl);margin-top:4px;letter-spacing:0.12em;text-transform:uppercase;">Основний текст UI</div>
+          </div>
+          <div>
+            <div style="font-family:'DM Mono',monospace;font-size:15px;color:var(--light);">DM Mono</div>
+            <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--textl);margin-top:4px;letter-spacing:0.12em;text-transform:uppercase;">Коди, мітки, метадані</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Phone Mockups -->
+  <div class="s-tag" style="margin-bottom:32px;text-align:center;">Макети екранів TWA</div>
+  <div class="phones-row">
+
+    <!-- Тіндер -->
+    <div class="ph-wrap">
+      <div class="ph-frame">
+        <div class="ph-screen">
+          <div class="ph-notch"></div>
+          <div class="sc-bar">
+            <div class="sc-logo" style="font-size:15px;">12 Months</div>
+            <div class="sc-icon">🛒</div>
+          </div>
+          <div style="font-size:9px;color:var(--textl);text-align:center;margin-bottom:8px;">Оберіть що подобається • 4/15</div>
+          <div class="swipe-card">
+            <div class="swipe-info">
+              <div class="swipe-name">Букет "Ніжність"</div>
+              <div class="swipe-price">Піони, евкаліпт · 850 грн</div>
+            </div>
+          </div>
+          <div class="swipe-btns">
+            <div class="sbtn sbtn-no">✕</div>
+            <div class="sbtn sbtn-yes">♥</div>
+          </div>
+          <div style="text-align:center;font-size:9px;color:var(--textl);margin-top:6px;">свайп або натисніть</div>
+        </div>
+      </div>
+      <div class="ph-lbl">💘 Тіндер-вибір</div>
+    </div>
+
+    <!-- Конструктор -->
+    <div class="ph-wrap">
+      <div class="ph-frame">
+        <div class="ph-screen">
+          <div class="ph-notch"></div>
+          <div class="sc-bar">
+            <div style="font-size:12px;font-weight:600;color:var(--green);">🎨 Конструктор</div>
+            <div class="sc-icon">🛒</div>
+          </div>
+          <div class="cs-preview">💐</div>
+          <div class="cs-pricebar">
+            <div class="cs-plbl">Поточна вартість</div>
+            <div class="cs-pval">1 240 грн</div>
+          </div>
+          <div class="cs-chips">
+            <div class="cs-chip">🌹 3</div>
+            <div class="cs-chip">🌸 2</div>
+            <div class="cs-chip">🌿 4</div>
+            <div class="cs-chip" style="border-style:dashed;color:var(--sage);">+ Додати</div>
+          </div>
+          <div class="ai-hint">✨ Додайте 2 гілочки евкаліпту — це збалансує композицію</div>
+        </div>
+      </div>
+      <div class="ph-lbl">🎨 Конструктор</div>
+    </div>
+
+    <!-- Календар -->
+    <div class="ph-wrap">
+      <div class="ph-frame">
+        <div class="ph-screen">
+          <div class="ph-notch"></div>
+          <div class="sc-bar">
+            <div style="font-size:12px;font-weight:600;color:var(--green);">📅 Мої дати</div>
+            <div style="font-size:18px;color:var(--green);">+</div>
+          </div>
+          <div class="cal-head">Березень 2025</div>
+          <div class="cal-evt">
+            <div class="cal-dot" style="background:var(--pink);"></div>
+            <div><div class="cal-en">💐 День мами</div><div class="cal-ed">8 бер · через 3 дні</div></div>
+          </div>
+          <div class="cal-evt">
+            <div class="cal-dot" style="background:var(--gold);"></div>
+            <div><div class="cal-en">💍 Річниця</div><div class="cal-ed">15 бер · через 10 днів</div></div>
+          </div>
+          <div class="cal-evt">
+            <div class="cal-dot" style="background:var(--sage);"></div>
+            <div><div class="cal-en">🎂 ДН Олі</div><div class="cal-ed">22 бер · через 17 днів</div></div>
+          </div>
+          <div class="cal-push" style="margin-top:8px;">
+            🔔 Через 3 дні день мами! Ми підготували добірку 👇
+          </div>
+        </div>
+      </div>
+      <div class="ph-lbl">📅 Календар</div>
+    </div>
+
+    <!-- Адмін -->
+    <div class="ph-wrap">
+      <div class="ph-frame">
+        <div class="ph-screen">
+          <div class="ph-notch"></div>
+          <div class="sc-bar">
+            <div style="font-size:12px;font-weight:600;color:var(--green);">⚙️ Адмін</div>
+          </div>
+          <div class="adm-menu">
+            <div class="adm-row">📋 Нові замовлення <span class="adm-badge">5</span></div>
+            <div class="adm-row">🔄 В роботі <span class="adm-badge" style="background:var(--gold);">3</span></div>
+            <div class="adm-row">✅ Готові до видачі</div>
+            <div class="adm-row">🌸 Асортимент</div>
+            <div class="adm-row">📦 Оновити наявність</div>
+            <div class="adm-row">📊 Статистика</div>
+          </div>
+        </div>
+      </div>
+      <div class="ph-lbl">⚙️ Адмін в боті</div>
+    </div>
+
+  </div>
+
+  <!-- UX Flows -->
+  <div style="margin-top:60px;">
+    <div class="s-tag" style="margin-bottom:28px;">Основні UX-флоу</div>
+    <div class="g2" style="margin-bottom:24px;">
+
+      <div class="flow-card">
+        <div class="flow-head"><div class="flow-icon">🚀</div><div class="flow-title">Онбординг нового користувача</div></div>
+        <div class="flow-body">
+          <div class="flow-steps">
+            <div class="flow-step">
+              <div class="flow-n">01</div>
+              <div class="flow-c">
+                <div class="flow-ct">Бот вітається</div>
+                <div class="flow-cd">Коротке привітання. Три кнопки: "Підібрати букет", "Зібрати свій", "Нагадування про дати". Без реєстрації.</div>
+              </div>
+            </div>
+            <div class="flow-step">
+              <div class="flow-n">02</div>
+              <div class="flow-c">
+                <div class="flow-ct">Одне питання</div>
+                <div class="flow-cd">Для кого букет? 5 варіантів: Коханій / Мамі / День народження / В офіс / Просто так. Зберігається у профіль.</div>
+              </div>
+            </div>
+            <div class="flow-step">
+              <div class="flow-n">03</div>
+              <div class="flow-c">
+                <div class="flow-ct">TWA відкривається миттєво</div>
+                <div class="flow-cd">Персоналізований контент відразу. Тіндер-вибір з відфільтрованим каталогом під привід.</div>
+              </div>
+            </div>
+            <div class="flow-step">
+              <div class="flow-n">04</div>
+              <div class="flow-c">
+                <div class="flow-ct">Замовлення + підтвердження</div>
+                <div class="flow-cd">Вибір → Кошик → Checkout → Оплата → Бот надсилає підтвердження в чат з трекінгом.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-card">
+        <div class="flow-head"><div class="flow-icon">💌</div><div class="flow-title">Відео-листівка + QR-код</div></div>
+        <div class="flow-body">
+          <div class="flow-steps">
+            <div class="flow-step">
+              <div class="flow-n">01</div>
+              <div class="flow-c">
+                <div class="flow-ct">Пропозиція при оформленні</div>
+                <div class="flow-cd">На кроці checkout: "Додати особисте привітання?" Не обов'язково — є кнопка "Пропустити".</div>
+              </div>
+            </div>
+            <div class="flow-step">
+              <div class="flow-n">02</div>
+              <div class="flow-c">
+                <div class="flow-ct">Запис або текст</div>
+                <div class="flow-cd">TWA Camera API для відео (до 30 сек) або текстова листівка з вибором фону.</div>
+              </div>
+            </div>
+            <div class="flow-step">
+              <div class="flow-n">03</div>
+              <div class="flow-c">
+                <div class="flow-ct">Генерація QR на бекенді</div>
+                <div class="flow-cd">Backend: унікальний UUID → URL → Python qrcode → PNG. Флорист друкує, вкладає в букет.</div>
+              </div>
+            </div>
+            <div class="flow-step">
+              <div class="flow-n">04</div>
+              <div class="flow-c">
+                <div class="flow-ct">Отримувач сканує</div>
+                <div class="flow-cd">Відкривається TWA з привітанням у стилі 12 Months. Без зайвих кроків. Можна переглянути ще раз.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Checkout flow -->
+    <div class="s-tag" style="margin-bottom:24px;">Флоу оформлення замовлення</div>
+    <div style="background:#fff;border:1px solid var(--border);border-radius:20px;padding:40px;">
+      <div class="checkout-steps">
+        <div class="cs-step">
+          <div class="cs-num">1</div>
+          <div class="cs-stitle">Підтвердження</div>
+          <div class="cs-sdesc">Склад, кількість, вартість. Кнопка "Редагувати" повертає до каталогу.</div>
+        </div>
+        <div class="cs-step">
+          <div class="cs-num">2</div>
+          <div class="cs-stitle">Доставка</div>
+          <div class="cs-sdesc">Самовивіз або доставка. Геолокація TWA для адреси. Слот часу через inline-календар.</div>
+        </div>
+        <div class="cs-step">
+          <div class="cs-num">3</div>
+          <div class="cs-stitle">Отримувач</div>
+          <div class="cs-sdesc">Ім'я та телефон. Відео-листівка (опційно). Коментар до замовлення.</div>
+        </div>
+        <div class="cs-step">
+          <div class="cs-num">4</div>
+          <div class="cs-stitle">Оплата</div>
+          <div class="cs-sdesc">LiqPay або Monobank. Підтвердження — бот пише в чат. Статус оновлюється live.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════ 05 BOT -->
+<section class="section" id="bot">
+  <div class="s-head">
+    <div class="s-num">05</div>
+    <div>
+      <div class="s-tag">Telegram Bot</div>
+      <h2 class="s-title">Команди та<br><em>push-логіка</em></h2>
+    </div>
+  </div>
+
+  <!-- Commands table -->
+  <div class="s-tag" style="margin-bottom:16px;">Команди бота</div>
+  <div class="cmd-table" style="margin-bottom:32px;">
+    <div class="cmd-row">
+      <div style="font-size:10px;font-family:'DM Mono',monospace;color:var(--textl);text-transform:uppercase;letter-spacing:0.1em;">Команда</div>
+      <div style="font-size:10px;font-family:'DM Mono',monospace;color:var(--textl);text-transform:uppercase;letter-spacing:0.1em;">Дія</div>
+      <div style="font-size:10px;font-family:'DM Mono',monospace;color:var(--textl);text-transform:uppercase;letter-spacing:0.1em;">Доступ</div>
+    </div>
+    <div class="cmd-row">
+      <div><span class="cmd-code">/start</span></div>
+      <div class="cmd-desc">Онбординг: привітання, питання "для кого", кнопка відкрити TWA</div>
+      <div><span class="cmd-who who-all">Всі</span></div>
+    </div>
+    <div class="cmd-row">
+      <div><span class="cmd-code">/order</span></div>
+      <div class="cmd-desc">Швидке замовлення — одразу відкриває TWA з каталогом</div>
+      <div><span class="cmd-who who-all">Всі</span></div>
+    </div>
+    <div class="cmd-row">
+      <div><span class="cmd-code">/status</span></div>
+      <div class="cmd-desc">Статус поточного та останнього замовлення з посиланням</div>
+      <div><span class="cmd-who who-all">Всі</span></div>
+    </div>
+    <div class="cmd-row">
+      <div><span class="cmd-code">/dates</span></div>
+      <div class="cmd-desc">Управління важливими датами: перегляд, додати, видалити</div>
+      <div><span class="cmd-who who-all">Всі</span></div>
+    </div>
+    <div class="cmd-row">
+      <div><span class="cmd-code">/subscribe</span></div>
+      <div class="cmd-desc">Управління квітковим абонементом: частота, тип, пауза, скасування</div>
+      <div><span class="cmd-who who-all">Всі</span></div>
+    </div>
+    <div class="cmd-row">
+      <div><span class="cmd-code">/history</span></div>
+      <div class="cmd-desc">Остання 5 замовлення з можливістю повторити одним натисканням</div>
+      <div><span class="cmd-who who-all">Всі</span></div>
+    </div>
+    <div class="cmd-row">
+      <div><span class="cmd-code">/admin</span></div>
+      <div class="cmd-desc">Головне меню адмін-панелі: замовлення, асортимент, статистика</div>
+      <div><span class="cmd-who who-adm">Адмін</span></div>
+    </div>
+    <div class="cmd-row">
+      <div><span class="cmd-code">/add</span></div>
+      <div class="cmd-desc">Швидке додавання нової позиції: запускає FSM-флоу з 6 кроків</div>
+      <div><span class="cmd-who who-adm">Адмін</span></div>
+    </div>
+    <div class="cmd-row">
+      <div><span class="cmd-code">/stock</span></div>
+      <div class="cmd-desc">Ранковий режим оновлення наявності: всі позиції в одному inline-списку</div>
+      <div><span class="cmd-who who-adm">Адмін</span></div>
+    </div>
+    <div class="cmd-row">
+      <div><span class="cmd-code">/stats</span></div>
+      <div class="cmd-desc">Статистика за день / тиждень / місяць: замовлення, виручка, топ-продукти</div>
+      <div><span class="cmd-who who-own">Власник</span></div>
+    </div>
+  </div>
+
+  <!-- Push logic -->
+  <div class="s-tag" style="margin-bottom:16px;">Логіка push-нагадувань</div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-pad">
+        <div class="c-title" style="font-size:18px;margin-bottom:16px;">📅 Нагадування про дати</div>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div style="display:flex;gap:14px;align-items:flex-start;">
+            <div style="background:var(--sage2);color:var(--deep);border-radius:8px;padding:4px 10px;font-size:11px;font-weight:600;flex-shrink:0;">За 3 дні</div>
+            <div style="font-size:12.5px;color:var(--textm);line-height:1.55;">Через 3 дні {event} {name}. Ми вже підібрали 3 варіанти! [Обрати букет → TWA]</div>
+          </div>
+          <div style="display:flex;gap:14px;align-items:flex-start;">
+            <div style="background:var(--goldl);color:#7a5a10;border-radius:8px;padding:4px 10px;font-size:11px;font-weight:600;flex-shrink:0;">За 1 день</div>
+            <div style="font-size:12.5px;color:var(--textm);line-height:1.55;">⚡ Завтра {event}! Є час замовити з доставкою сьогодні. [Замовити зараз]</div>
+          </div>
+          <div style="display:flex;gap:14px;align-items:flex-start;">
+            <div style="background:var(--pinkl);color:#7a3040;border-radius:8px;padding:4px 10px;font-size:11px;font-weight:600;flex-shrink:0;">У день події</div>
+            <div style="font-size:12.5px;color:var(--textm);line-height:1.55;">🎉 Сьогодні {event} {name}! Не забудьте привітати 💐</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-pad">
+        <div class="c-title" style="font-size:18px;margin-bottom:16px;">🔔 Сервісні нотифікації</div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div style="padding:10px 14px;background:var(--cream2);border-radius:10px;font-size:12.5px;color:var(--textm);line-height:1.55;">
+            <strong style="color:var(--green);">Прийнято</strong> — одразу після оплати: номер замовлення, склад, час доставки
+          </div>
+          <div style="padding:10px 14px;background:var(--cream2);border-radius:10px;font-size:12.5px;color:var(--textm);line-height:1.55;">
+            <strong style="color:var(--green);">В роботі</strong> — флорист взяв в роботу: "Ваш букет вже збирають 🌸"
+          </div>
+          <div style="padding:10px 14px;background:var(--cream2);border-radius:10px;font-size:12.5px;color:var(--textm);line-height:1.55;">
+            <strong style="color:var(--green);">Готово</strong> — "Букет готовий! Кур'єр виїхав / Чекає на вас"
+          </div>
+          <div style="padding:10px 14px;background:var(--cream2);border-radius:10px;font-size:12.5px;color:var(--textm);line-height:1.55;">
+            <strong style="color:var(--green);">NPS через 2 год</strong> — "Як вам букет? Оцініть від 1 до 5 ⭐"
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════ 06 АДМІН -->
+<section class="section" id="admin">
+  <div class="s-head">
+    <div class="s-num">06</div>
+    <div>
+      <div class="s-tag">Управління магазином</div>
+      <h2 class="s-title">Адмін-панель<br><em>прямо в Telegram</em></h2>
+    </div>
+  </div>
+
+  <div class="g2" style="margin-bottom:32px;">
+
+    <!-- Dialog: Add product -->
+    <div>
+      <div class="s-tag" style="margin-bottom:14px;">Флоу: Додавання нової позиції (/add)</div>
+      <div class="dialog-wrap">
+        <div class="d-lbl">КРОК 1/6 — ФОТО</div>
+        <div class="d-msg d-bot">📸 Надішліть фото букету.<br>Бажано квадрат або портрет, гарне освітлення.</div>
+        <div class="d-msg d-user">← [Фото надіслано]</div>
+
+        <div class="d-lbl">КРОК 2/6 — НАЗВА</div>
+        <div class="d-msg d-bot">✅ Фото збережено!<br><br>✏️ Введіть назву позиції:</div>
+        <div class="d-msg d-user">Ніжність весни</div>
+
+        <div class="d-lbl">КРОК 3/6 — ЦІНА</div>
+        <div class="d-msg d-bot">💰 Вкажіть ціну в гривнях (тільки цифри):</div>
+        <div class="d-msg d-user">950</div>
+
+        <div class="d-lbl">КРОК 4/6 — КАТЕГОРІЯ</div>
+        <div class="d-msg d-bot">📂 Оберіть категорію:</div>
+        <div class="d-btns">
+          <div class="d-btn">💐 Готові букети</div>
+          <div class="d-btn">🌹 Поштучно</div>
+          <div class="d-btn">🎀 Декор</div>
+          <div class="d-btn">🌿 Зелень</div>
+        </div>
+
+        <div class="d-lbl">КРОК 5/6 — СКЛАД / ТЕГИ</div>
+        <div class="d-msg d-bot">📝 Опишіть склад (побачить покупець):<br><br>Приклад: Піони 5шт, евкаліпт, крафт</div>
+        <div class="d-msg d-user">Піони рожеві 5шт, гілочки евкаліпту 3, крафтове пакування</div>
+
+        <div class="d-lbl">КРОК 6/6 — ПІДТВЕРДЖЕННЯ</div>
+        <div class="d-msg d-bot">Перевірте:<br>📌 Ніжність весни<br>💰 950 грн · 💐 Готові букети<br>📝 Піони рожеві 5шт...</div>
+        <div class="d-btns">
+          <div class="d-btn">✅ Опублікувати</div>
+          <div class="d-btn">✏️ Редагувати</div>
+          <div class="d-btn">❌ Скасувати</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right column: menu + access + quick cmds -->
+    <div style="display:flex;flex-direction:column;gap:20px;">
+
+      <!-- Admin menu structure -->
+      <div class="card">
+        <div class="card-pad-sm">
+          <div class="s-tag" style="margin-bottom:14px;">Головне меню /admin</div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--cream2);border-radius:10px;font-size:13px;color:var(--green);">
+              📋 Замовлення
+              <span style="margin-left:auto;font-size:10px;color:var(--textl);">нові / в роботі / готові</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--cream2);border-radius:10px;font-size:13px;color:var(--green);">
+              🌸 Асортимент
+              <span style="margin-left:auto;font-size:10px;color:var(--textl);">по категоріях</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--cream2);border-radius:10px;font-size:13px;color:var(--green);">
+              📦 Оновити наявність
+              <span style="margin-left:auto;font-size:10px;color:var(--sage);">щоранку</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--cream2);border-radius:10px;font-size:13px;color:var(--green);">
+              📊 Статистика
+              <span style="margin-left:auto;font-size:10px;color:var(--textl);">день / тиждень</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--cream2);border-radius:10px;font-size:13px;color:var(--green);">
+              ⚙️ Налаштування
+              <span style="margin-left:auto;font-size:10px;color:var(--textl);">адміни, бот</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Access levels -->
+      <div class="access-wrap">
+        <div class="s-tag" style="margin-bottom:4px;">Рівні доступу</div>
+        <div class="access-item">
+          <div class="access-badge ab-owner">Власник</div>
+          <div class="access-info">
+            <h4>Повний доступ</h4>
+            <p>Всі функції + статистика + управління адмінами + налаштування</p>
+          </div>
+        </div>
+        <div class="access-item">
+          <div class="access-badge ab-manager">Менеджер</div>
+          <div class="access-info">
+            <h4>Операційний</h4>
+            <p>Замовлення, ціни, додавання та видалення позицій</p>
+          </div>
+        </div>
+        <div class="access-item">
+          <div class="access-badge ab-florist">Флорист</div>
+          <div class="access-info">
+            <h4>Обмежений</h4>
+            <p>Тільки замовлення та оновлення наявності (/stock)</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick commands -->
+      <div style="background:#fff;border:1px solid var(--border);border-radius:16px;padding:22px 24px;">
+        <div class="s-tag" style="margin-bottom:12px;">⚡ Швидкі команди</div>
+        <div class="qcmd"><div class="qcmd-code">/hide 42</div><div class="qcmd-d">Зняти з продажу позицію #42 (не видаляє)</div></div>
+        <div class="qcmd"><div class="qcmd-code">/show 42</div><div class="qcmd-d">Повернути позицію #42 у продаж</div></div>
+        <div class="qcmd"><div class="qcmd-code">/price 42 950</div><div class="qcmd-d">Змінити ціну позиції #42 на 950 грн</div></div>
+        <div class="qcmd"><div class="qcmd-code">/stock</div><div class="qcmd-d">Ранковий inline-список всіх позицій ✅/❌</div></div>
+        <div class="qcmd"><div class="qcmd-code">/orders</div><div class="qcmd-d">Нові замовлення одним повідомленням</div></div>
+        <div class="qcmd"><div class="qcmd-code">/del 42</div><div class="qcmd-d">Видалити позицію (з підтвердженням)</div></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Safety -->
+  <div class="g2">
+    <div class="infobox warn">
+      <div class="ib-title">⚠️ Захист від помилок при видаленні</div>
+      <p class="ib-text">Перед видаленням позиції бот перевіряє наявність активних замовлень. Якщо є — пропонує лише "Зняти з продажу" замість повного видалення. Після підтвердження видалення — дані зберігаються в архіві 30 днів для звітності.</p>
+    </div>
+    <div class="infobox note">
+      <div class="ib-title">📦 Ранковий режим наявності (/stock)</div>
+      <p class="ib-text">Один екран зі всіма позиціями. Флорист тапає ✅/❌ навпроти кожної. Одне натискання "Зберегти" — всі зміни застосовуються одразу. Замість переходів по підменю — максимально швидко.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════ 07 БД -->
+<section class="section" id="db">
+  <div class="s-head">
+    <div class="s-num">07</div>
+    <div>
+      <div class="s-tag">Структура даних</div>
+      <h2 class="s-title">Схема<br><em>бази даних</em></h2>
+    </div>
+  </div>
+
+  <div class="g3" style="margin-bottom:20px;">
+    <div class="db-table">
+      <div class="db-th">
+        <div class="db-th-name">users</div>
+        <div class="db-th-desc">Покупці та адміни</div>
+      </div>
+      <div class="db-body">
+        <div class="db-f"><span class="db-fn">id</span><span class="db-ft">UUID PK</span></div>
+        <div class="db-f"><span class="db-fn">tg_id</span><span class="db-ft">BIGINT UNIQUE</span></div>
+        <div class="db-f"><span class="db-fn">name</span><span class="db-ft">VARCHAR(100)</span></div>
+        <div class="db-f"><span class="db-fn">phone</span><span class="db-ft">VARCHAR(20)</span></div>
+        <div class="db-f"><span class="db-fn">role</span><span class="db-ft">ENUM(user,florist,manager,owner)</span></div>
+        <div class="db-f"><span class="db-fn">onboard_answer</span><span class="db-ft">VARCHAR(50)</span></div>
+        <div class="db-f"><span class="db-fn">created_at</span><span class="db-ft">TIMESTAMP</span></div>
+      </div>
+    </div>
+
+    <div class="db-table">
+      <div class="db-th">
+        <div class="db-th-name">products</div>
+        <div class="db-th-desc">Асортимент магазину</div>
+      </div>
+      <div class="db-body">
+        <div class="db-f"><span class="db-fn">id</span><span class="db-ft">UUID PK</span></div>
+        <div class="db-f"><span class="db-fn">name</span><span class="db-ft">VARCHAR(200)</span></div>
+        <div class="db-f"><span class="db-fn">category</span><span class="db-ft">VARCHAR(50)</span></div>
+        <div class="db-f"><span class="db-fn">base_price</span><span class="db-ft">DECIMAL(10,2)</span></div>
+        <div class="db-f"><span class="db-fn">is_available</span><span class="db-ft">BOOLEAN DEFAULT true</span></div>
+        <div class="db-f"><span class="db-fn">is_deleted</span><span class="db-ft">BOOLEAN DEFAULT false</span></div>
+        <div class="db-f"><span class="db-fn">image_url</span><span class="db-ft">TEXT</span></div>
+        <div class="db-f"><span class="db-fn">composition</span><span class="db-ft">TEXT</span></div>
+        <div class="db-f"><span class="db-fn">tags</span><span class="db-ft">TEXT[] (JSONB)</span></div>
+        <div class="db-f"><span class="db-fn">created_by</span><span class="db-fk">FK → users</span></div>
+        <div class="db-f"><span class="db-fn">created_at</span><span class="db-ft">TIMESTAMP</span></div>
+      </div>
+    </div>
+
+    <div class="db-table">
+      <div class="db-th">
+        <div class="db-th-name">orders</div>
+        <div class="db-th-desc">Замовлення</div>
+      </div>
+      <div class="db-body">
+        <div class="db-f"><span class="db-fn">id</span><span class="db-ft">UUID PK</span></div>
+        <div class="db-f"><span class="db-fn">user_id</span><span class="db-fk">FK → users</span></div>
+        <div class="db-f"><span class="db-fn">type</span><span class="db-ft">ENUM(ready,custom)</span></div>
+        <div class="db-f"><span class="db-fn">total_price</span><span class="db-ft">DECIMAL(10,2)</span></div>
+        <div class="db-f"><span class="db-fn">status</span><span class="db-ft">ENUM(new,in_work,ready,delivered,cancelled)</span></div>
+        <div class="db-f"><span class="db-fn">delivery_type</span><span class="db-ft">ENUM(pickup,delivery)</span></div>
+        <div class="db-f"><span class="db-fn">delivery_at</span><span class="db-ft">TIMESTAMP</span></div>
+        <div class="db-f"><span class="db-fn">address</span><span class="db-ft">TEXT</span></div>
+        <div class="db-f"><span class="db-fn">recipient_name</span><span class="db-ft">VARCHAR(100)</span></div>
+        <div class="db-f"><span class="db-fn">recipient_phone</span><span class="db-ft">VARCHAR(20)</span></div>
+        <div class="db-f"><span class="db-fn">qr_token</span><span class="db-ft">UUID UNIQUE (nullable)</span></div>
+        <div class="db-f"><span class="db-fn">greeting_url</span><span class="db-ft">TEXT (відео/текст)</span></div>
+        <div class="db-f"><span class="db-fn">comment</span><span class="db-ft">TEXT</span></div>
+        <div class="db-f"><span class="db-fn">created_at</span><span class="db-ft">TIMESTAMP</span></div>
+      </div>
+    </div>
+
+    <div class="db-table">
+      <div class="db-th">
+        <div class="db-th-name">order_items</div>
+        <div class="db-th-desc">Склад замовлення</div>
+      </div>
+      <div class="db-body">
+        <div class="db-f"><span class="db-fn">id</span><span class="db-ft">UUID PK</span></div>
+        <div class="db-f"><span class="db-fn">order_id</span><span class="db-fk">FK → orders</span></div>
+        <div class="db-f"><span class="db-fn">product_id</span><span class="db-fk">FK → products</span></div>
+        <div class="db-f"><span class="db-fn">quantity</span><span class="db-ft">INT</span></div>
+        <div class="db-f"><span class="db-fn">price_at_order</span><span class="db-ft">DECIMAL(10,2)</span></div>
+      </div>
+    </div>
+
+    <div class="db-table">
+      <div class="db-th">
+        <div class="db-th-name">important_dates</div>
+        <div class="db-th-desc">Календар нагадувань</div>
+      </div>
+      <div class="db-body">
+        <div class="db-f"><span class="db-fn">id</span><span class="db-ft">UUID PK</span></div>
+        <div class="db-f"><span class="db-fn">user_id</span><span class="db-fk">FK → users</span></div>
+        <div class="db-f"><span class="db-fn">label</span><span class="db-ft">VARCHAR(100)</span></div>
+        <div class="db-f"><span class="db-fn">person_name</span><span class="db-ft">VARCHAR(100)</span></div>
+        <div class="db-f"><span class="db-fn">date</span><span class="db-ft">DATE</span></div>
+        <div class="db-f"><span class="db-fn">repeat_yearly</span><span class="db-ft">BOOLEAN DEFAULT true</span></div>
+        <div class="db-f"><span class="db-fn">reminder_days</span><span class="db-ft">INT[] DEFAULT [3,1]</span></div>
+        <div class="db-f"><span class="db-fn">is_active</span><span class="db-ft">BOOLEAN DEFAULT true</span></div>
+      </div>
+    </div>
+
+    <div class="db-table">
+      <div class="db-th">
+        <div class="db-th-name">swipe_sessions</div>
+        <div class="db-th-desc">Результати Тіндера</div>
+      </div>
+      <div class="db-body">
+        <div class="db-f"><span class="db-fn">id</span><span class="db-ft">UUID PK</span></div>
+        <div class="db-f"><span class="db-fn">user_id</span><span class="db-fk">FK → users</span></div>
+        <div class="db-f"><span class="db-fn">liked_ids</span><span class="db-ft">UUID[]</span></div>
+        <div class="db-f"><span class="db-fn">disliked_ids</span><span class="db-ft">UUID[]</span></div>
+        <div class="db-f"><span class="db-fn">result_tags</span><span class="db-ft">TEXT[]</span></div>
+        <div class="db-f"><span class="db-fn">ai_summary</span><span class="db-ft">TEXT</span></div>
+        <div class="db-f"><span class="db-fn">created_at</span><span class="db-ft">TIMESTAMP</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="g2">
+    <div class="db-table">
+      <div class="db-th">
+        <div class="db-th-name">subscriptions</div>
+        <div class="db-th-desc">Квіткові абонементи</div>
+      </div>
+      <div class="db-body" style="display:grid;grid-template-columns:1fr 1fr;gap:0;">
+        <div class="db-f"><span class="db-fn">id</span><span class="db-ft">UUID PK</span></div>
+        <div class="db-f"><span class="db-fn">user_id</span><span class="db-fk">FK → users</span></div>
+        <div class="db-f"><span class="db-fn">frequency</span><span class="db-ft">ENUM(weekly, biweekly)</span></div>
+        <div class="db-f"><span class="db-fn">product_id</span><span class="db-fk">FK → products</span></div>
+        <div class="db-f"><span class="db-fn">price</span><span class="db-ft">DECIMAL(10,2)</span></div>
+        <div class="db-f"><span class="db-fn">next_delivery</span><span class="db-ft">DATE</span></div>
+        <div class="db-f"><span class="db-fn">address</span><span class="db-ft">TEXT</span></div>
+        <div class="db-f"><span class="db-fn">is_active</span><span class="db-ft">BOOLEAN</span></div>
+        <div class="db-f"><span class="db-fn">paused_until</span><span class="db-ft">DATE nullable</span></div>
+        <div class="db-f"><span class="db-fn">created_at</span><span class="db-ft">TIMESTAMP</span></div>
+      </div>
+    </div>
+    <div class="db-table">
+      <div class="db-th">
+        <div class="db-th-name">bouquet_elements</div>
+        <div class="db-th-desc">Елементи для конструктора</div>
+      </div>
+      <div class="db-body" style="display:grid;grid-template-columns:1fr 1fr;gap:0;">
+        <div class="db-f"><span class="db-fn">id</span><span class="db-ft">UUID PK</span></div>
+        <div class="db-f"><span class="db-fn">name</span><span class="db-ft">VARCHAR(100)</span></div>
+        <div class="db-f"><span class="db-fn">type</span><span class="db-ft">ENUM(flower,base,decor,green)</span></div>
+        <div class="db-f"><span class="db-fn">price_per_unit</span><span class="db-ft">DECIMAL(10,2)</span></div>
+        <div class="db-f"><span class="db-fn">image_url</span><span class="db-ft">TEXT</span></div>
+        <div class="db-f"><span class="db-fn">is_available</span><span class="db-ft">BOOLEAN</span></div>
+        <div class="db-f"><span class="db-fn">color_tags</span><span class="db-ft">TEXT[]</span></div>
+        <div class="db-f"><span class="db-fn">emoji</span><span class="db-ft">VARCHAR(10)</span></div>
+        <div class="db-f"><span class="db-fn">sort_order</span><span class="db-ft">INT</span></div>
+        <div class="db-f"><span class="db-fn">created_at</span><span class="db-ft">TIMESTAMP</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════ 08 AI -->
+<section class="section" id="ai">
+  <div class="s-head">
+    <div class="s-num">08</div>
+    <div>
+      <div class="s-tag">Штучний інтелект</div>
+      <h2 class="s-title">AI-інтеграція<br><em>Claude API</em></h2>
+    </div>
+  </div>
+
+  <div class="g3" style="margin-bottom:24px;">
+
+    <div class="ai-card">
+      <div class="ai-top">
+        <div class="ai-n">СЦЕНАРІЙ 01 · КОНСТРУКТОР</div>
+        <div class="ai-t">Порада флориста в реальному часі</div>
+      </div>
+      <div class="ai-body">
+        <div class="ai-prompt">
+          Ти досвідчений флорист.<br>
+          Склад букету: <span class="ai-var">{flowers_list}</span><br>
+          Залишок бюджету: <span class="ai-var">{budget}</span> грн<br>
+          Привід: <span class="ai-var">{occasion}</span><br><br>
+          Дай ОДНУ пораду до 15 слів. Тільки порада.
+        </div>
+        <div class="ai-out">
+          <div class="ai-ol">Приклад відповіді</div>
+          <div class="ai-ov">"Додайте 2 гілочки евкаліпту — це збалансує об'єм і додасть свіжості"</div>
+        </div>
+        <div style="margin-top:10px;font-size:11px;color:var(--textl);">Debounce 1.5s при кожній зміні складу</div>
+      </div>
+    </div>
+
+    <div class="ai-card">
+      <div class="ai-top">
+        <div class="ai-n">СЦЕНАРІЙ 02 · ТІНДЕР</div>
+        <div class="ai-t">Аналіз смаку після свайпів</div>
+      </div>
+      <div class="ai-body">
+        <div class="ai-prompt">
+          Вподобані букети: <span class="ai-var">{liked_descriptions}</span><br>
+          Не сподобались: <span class="ai-var">{disliked_descriptions}</span><br><br>
+          Визнач 3 ключові характеристики смаку.<br>
+          Формат: "Вам подобається: X, Y, Z"
+        </div>
+        <div class="ai-out">
+          <div class="ai-ol">Приклад відповіді</div>
+          <div class="ai-ov">"Вам подобається: пастельні відтінки, об'ємні форми та ніжні піони"</div>
+        </div>
+        <div style="margin-top:10px;font-size:11px;color:var(--textl);">Викликається після 10+ свайпів</div>
+      </div>
+    </div>
+
+    <div class="ai-card">
+      <div class="ai-top">
+        <div class="ai-n">СЦЕНАРІЙ 03 · НАГАДУВАННЯ</div>
+        <div class="ai-t">Персональна добірка до події</div>
+      </div>
+      <div class="ai-body">
+        <div class="ai-prompt">
+          Попередні замовлення клієнта: <span class="ai-var">{order_history}</span><br>
+          Подія: <span class="ai-var">{event_label}</span><br>
+          Доступні букети: <span class="ai-var">{catalog_json}</span><br><br>
+          Запропонуй 3 найкращих варіанти. JSON.
+        </div>
+        <div class="ai-out">
+          <div class="ai-ol">Формат відповіді</div>
+          <div class="ai-ov">{"items":[{"id":"uuid","reason":"Схожі кольори на минулий букет"}]}</div>
+        </div>
+        <div style="margin-top:10px;font-size:11px;color:var(--textl);">За 3 дні до кожної дати</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="infobox note">
+    <div class="ib-title">💡 Важливо: Cost Control</div>
+    <p class="ib-text">Claude API викликається тільки при реальній потребі (не на кожен крок). Конструктор — debounce 1.5s. Тіндер — один виклик після сесії. Нагадування — один виклик на подію. Середній витрата: ~$0.001 на сесію. Для MVP — Claude Haiku (найдешевший), при масштабуванні — Sonnet.</p>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════ 09 ROADMAP -->
+<section class="section" id="roadmap">
+  <div class="s-head">
+    <div class="s-num">09</div>
+    <div>
+      <div class="s-tag">Планування розробки</div>
+      <h2 class="s-title">Roadmap та<br><em>метрики успіху</em></h2>
+    </div>
+  </div>
+
+  <div class="phases-row" style="margin-bottom:80px;">
+    <div class="phase-item">
+      <div class="phase-dot">🌱</div>
+      <div class="phase-dur">Тижні 1–5</div>
+      <div class="phase-title">MVP</div>
+      <ul class="phase-list">
+        <li>Базовий бот + /start онбординг</li>
+        <li>TWA: каталог + пошук</li>
+        <li>Checkout + оплата LiqPay</li>
+        <li>Адмін /add /hide /stock</li>
+        <li>Push статус замовлення</li>
+        <li>Деплой на Railway</li>
+      </ul>
+    </div>
+    <div class="phase-item">
+      <div class="phase-dot">🌸</div>
+      <div class="phase-dur">Тижні 6–9</div>
+      <div class="phase-title">Core</div>
+      <ul class="phase-list">
+        <li>Тіндер-вибір + алгоритм</li>
+        <li>Відео-листівки + QR</li>
+        <li>Календар важливих дат</li>
+        <li>Scheduler нагадувань</li>
+        <li>Підписки /subscribe</li>
+        <li>NPS після доставки</li>
+      </ul>
+    </div>
+    <div class="phase-item">
+      <div class="phase-dot">🌺</div>
+      <div class="phase-dur">Тижні 10–13</div>
+      <div class="phase-title">Advanced</div>
+      <ul class="phase-list">
+        <li>2D Конструктор букету</li>
+        <li>AI-помічник (Claude API)</li>
+        <li>Персональні добірки</li>
+        <li>Статистика для власника</li>
+        <li>Реферальна програма</li>
+        <li>A/B тести онбордингу</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="s-tag" style="margin-bottom:22px;text-align:center;">Ключові метрики KPI</div>
+  <div class="metrics-row">
+    <div class="m-card">
+      <div class="m-val">&gt;15%</div>
+      <div class="m-lbl">Конверсія TWA → замовлення</div>
+    </div>
+    <div class="m-card">
+      <div class="m-val">&gt;30%</div>
+      <div class="m-lbl">Повторні покупки за 30 днів</div>
+    </div>
+    <div class="m-card">
+      <div class="m-val">+40%</div>
+      <div class="m-lbl">Середній чек з Конструктором</div>
+    </div>
+    <div class="m-card">
+      <div class="m-val">&gt;25%</div>
+      <div class="m-lbl">Підключення до Календаря</div>
+    </div>
+    <div class="m-card">
+      <div class="m-val">&gt;70</div>
+      <div class="m-lbl">NPS після доставки</div>
+    </div>
+  </div>
+
+</section>
+
+</div><!-- /main -->
+
+<footer>
+  <div class="footer-in">
+    <div class="footer-logo">12 <em>Months</em></div>
+    <div class="footer-meta">
+      Технічне завдання v1.0<br>
+      Telegram Bot + TWA<br>
+      12 Months Flower Shop
+    </div>
+  </div>
+</footer>
+
+<script>
+  const nav = document.getElementById('nav');
+  window.addEventListener('scroll', () => {
+    nav.classList.toggle('on', window.scrollY > window.innerHeight * 0.4);
+  }, { passive: true });
+</script>
+</body>
+</html>
