@@ -11,15 +11,20 @@ const TwaTinder = ({ T, lang, onComplete, cardStyle='rounded' }) => {
   const total = cards.length;
   const radius = cardStyle==='rounded' ? 22 : cardStyle==='squared' ? 4 : 12;
 
+  // TZ §08: AI-аналіз смаку викликається після 10+ свайпів — не чекаємо кінця колоди.
+  const AI_THRESHOLD = 10;
   const swipe = (dir) => {
     const card = cards[idx];
-    if (dir > 0) setLiked([...liked, card.id]);
-    else setDisliked([...disliked, card.id]);
+    const nextLiked = dir > 0 ? [...liked, card.id] : liked;
+    const nextDisliked = dir < 0 ? [...disliked, card.id] : disliked;
+    if (dir > 0) setLiked(nextLiked);
+    else setDisliked(nextDisliked);
     setExitX(dir * 500);
     setTimeout(() => {
       setExitX(0);
       setDrag({x:0, active:false, startX:0, startY:0});
-      if (idx + 1 >= total) {
+      const swipes = nextLiked.length + nextDisliked.length;
+      if (swipes >= AI_THRESHOLD || idx + 1 >= total) {
         setShowResult(true);
       } else {
         setIdx(idx+1);

@@ -7,6 +7,7 @@ const TwaCheckout = ({ T, lang, cart, onComplete, onCancel, cardStyle='rounded' 
   const [name, setName] = React.useState(T.namePh);
   const [phone, setPhone] = React.useState(T.phonePh);
   const [greeting, setGreeting] = React.useState(null);
+  const [comment, setComment] = React.useState('');
   const [paying, setPaying] = React.useState(false);
   const radius = cardStyle==='rounded' ? 14 : cardStyle==='squared' ? 4 : 10;
   const total = cart?.total || 850;
@@ -19,7 +20,7 @@ const TwaCheckout = ({ T, lang, cart, onComplete, onCancel, cardStyle='rounded' 
     if (step < 3) setStep(step+1);
     else {
       setPaying(true);
-      setTimeout(() => onComplete && onComplete({total:grand, addr, name, phone, delivery, greeting}), 1400);
+      setTimeout(() => onComplete && onComplete({total:grand, addr, name, phone, delivery, greeting, comment}), 1400);
     }
   };
 
@@ -85,7 +86,9 @@ const TwaCheckout = ({ T, lang, cart, onComplete, onCancel, cardStyle='rounded' 
             <div style={{fontFamily:'"DM Mono",monospace',fontSize:9,letterSpacing:'0.14em',textTransform:'uppercase',color:'#888',marginBottom:6}}>{lang==='ua'?"Ім'я":'Name'}</div>
             <input value={name} onChange={e=>setName(e.target.value)} style={{width:'100%',padding:'11px 13px',border:'1px solid rgba(45,80,22,0.13)',borderRadius:8,fontSize:13,fontFamily:'inherit',background:'#fff',marginBottom:12}}/>
             <div style={{fontFamily:'"DM Mono",monospace',fontSize:9,letterSpacing:'0.14em',textTransform:'uppercase',color:'#888',marginBottom:6}}>{lang==='ua'?'Телефон':'Phone'}</div>
-            <input value={phone} onChange={e=>setPhone(e.target.value)} style={{width:'100%',padding:'11px 13px',border:'1px solid rgba(45,80,22,0.13)',borderRadius:8,fontSize:13,fontFamily:'inherit',background:'#fff',marginBottom:14}}/>
+            <input value={phone} onChange={e=>setPhone(e.target.value)} style={{width:'100%',padding:'11px 13px',border:'1px solid rgba(45,80,22,0.13)',borderRadius:8,fontSize:13,fontFamily:'inherit',background:'#fff',marginBottom:12}}/>
+            <div style={{fontFamily:'"DM Mono",monospace',fontSize:9,letterSpacing:'0.14em',textTransform:'uppercase',color:'#888',marginBottom:6}}>{lang==='ua'?'Коментар (опц.)':'Comment (optional)'}</div>
+            <textarea value={comment} onChange={e=>setComment(e.target.value)} placeholder={lang==='ua'?'напр., домофон 234, поверх 5':'e.g. doorcode 234, fl. 5'} style={{width:'100%',padding:'11px 13px',border:'1px solid rgba(45,80,22,0.13)',borderRadius:8,fontSize:13,fontFamily:'inherit',background:'#fff',marginBottom:14,minHeight:54,resize:'vertical'}}/>
             <div style={{padding:14,background:'linear-gradient(135deg,rgba(221,168,173,0.15),rgba(245,221,224,0.3))',border:'1px solid rgba(221,168,173,0.4)',borderRadius:radius}}>
               <div style={{fontFamily:'"DM Mono",monospace',fontSize:9,letterSpacing:'0.14em',textTransform:'uppercase',color:'#7a3040',marginBottom:4}}>💌 QR-листівка</div>
               <div style={{fontSize:12.5,color:'#1c3610',marginBottom:8,fontWeight:500}}>{T.addGreeting}</div>

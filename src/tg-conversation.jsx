@@ -22,18 +22,23 @@ const TgConversation = ({ T, lang, scenario='full', onOpenApp, twaState }) => {
 
   const messages = React.useMemo(() => {
     if (scenario === 'admin') {
+      // TZ §06 /add — 6 steps: фото → назва → ціна → категорія → склад → підтвердження.
       return [
         {t:'date', body:'15 квітня · Адмін чат'},
         {t:'user', body:'/add'},
-        {t:'bot', body:lang==='ua'?'Додаємо новий букет. Назва?':'Adding new bouquet. Name?'},
+        {t:'bot', body:lang==='ua'?'<b>КРОК 1/6 — ФОТО</b>\n📸 Надішліть фото букету. Бажано квадрат або портрет.':'<b>STEP 1/6 — PHOTO</b>\n📸 Send a photo of the bouquet.'},
+        {t:'user', body:'← [Фото надіслано]'},
+        {t:'bot', body:lang==='ua'?'✅ Фото збережено!\n\n<b>КРОК 2/6 — НАЗВА</b>\n✏️ Введіть назву позиції:':'✅ Saved!\n\n<b>STEP 2/6 — NAME</b>\n✏️ Enter the name:'},
         {t:'user', body:lang==='ua'?'Лимонна цедра':'Lemon zest'},
-        {t:'bot', body:lang==='ua'?'Ціна (грн)?':'Price (UAH)?'},
+        {t:'bot', body:lang==='ua'?'<b>КРОК 3/6 — ЦІНА</b>\n💰 Вкажіть ціну в гривнях (тільки цифри):':'<b>STEP 3/6 — PRICE</b>\n💰 Enter price (digits only):'},
         {t:'user', body:'640'},
-        {t:'bot', body:lang==='ua'?'Палітра — оберіть до 3 кольорів:':'Palette — pick up to 3 colors:', kb:['#e8c454','#fafafa','#5d8a3e','done']},
-        {t:'user', body:'#e8c454, #fafafa, #5d8a3e'},
-        {t:'bot', body:lang==='ua'?'Фото? Надішліть або /skip':'Photo? Send or /skip'},
-        {t:'user', body:'/skip'},
-        {t:'bot', body:lang==='ua'?'✓ Букет №b12 додано в каталог. Видно в TWA для всіх клієнтів.':'✓ Bouquet #b12 added to catalog. Live for all customers in the TWA.'},
+        {t:'bot', body:lang==='ua'?'<b>КРОК 4/6 — КАТЕГОРІЯ</b>\n📂 Оберіть:':'<b>STEP 4/6 — CATEGORY</b>\n📂 Pick:', kb:['💐 Готові букети','🌹 Поштучно','🎀 Декор','🌿 Зелень']},
+        {t:'user', body:'💐 Готові букети'},
+        {t:'bot', body:lang==='ua'?'<b>КРОК 5/6 — СКЛАД / ТЕГИ</b>\n📝 Опишіть склад (побачить покупець):\n\nПриклад: Піони 5шт, евкаліпт, крафт':'<b>STEP 5/6 — COMPOSITION</b>\n📝 Describe (visible to customers).'},
+        {t:'user', body:lang==='ua'?'Тюльпани жовті 11шт, ромашки 5шт, крафт':'Yellow tulips 11pcs, daisies 5pcs, kraft'},
+        {t:'bot', body:lang==='ua'?'<b>КРОК 6/6 — ПІДТВЕРДЖЕННЯ</b>\nПеревірте:\n📌 Лимонна цедра\n💰 640 грн · 💐 Готові букети\n📝 Тюльпани 11шт, ромашки 5шт, крафт':'<b>STEP 6/6 — CONFIRM</b>\nReview:\n📌 Lemon zest\n💰 ₴640 · 💐 Bouquets\n📝 11 tulips, 5 daisies, kraft', kb:['✅ Опублікувати','✏️ Редагувати','❌ Скасувати']},
+        {t:'user', body:'✅ Опублікувати'},
+        {t:'bot', body:lang==='ua'?'✓ Букет «Лимонна цедра» додано в каталог. Видно в TWA для всіх клієнтів.':'✓ "Lemon zest" added to catalog.'},
         {t:'card-admin'},
         {t:'bot', body:lang==='ua'?'Сьогодні: 14 замовлень, 12 800 грн. Топ — Ніжність (5).':'Today: 14 orders, ₴12,800. Top — Tenderness (5).', kb:['📊 Деталі','📦 Замовлення']},
       ];
