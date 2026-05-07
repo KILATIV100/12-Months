@@ -1,10 +1,21 @@
 // TWA Calendar — list of important dates with add/edit, push preview
 
 const TwaCalendar = ({ T, lang, cardStyle='rounded' }) => {
-  const [dates, setDates] = React.useState(window.MOCK.DATES);
+  // TZ §07: important_dates fields → repeat_yearly + reminder_days[]
+  const [dates, setDates] = React.useState(window.MOCK.DATES.map(d=>({...d, repeatYearly:true, reminderDays:[3,1]})));
   const [adding, setAdding] = React.useState(false);
-  const [newDate, setNewDate] = React.useState({label:'', person:'', icon:'🎁', date:''});
+  const [newDate, setNewDate] = React.useState({label:'', person:'', icon:'🎁', date:'', repeatYearly:true, reminderDays:[3,1]});
   const radius = cardStyle==='rounded' ? 14 : cardStyle==='squared' ? 4 : 10;
+  const toggleDay = (day) => setNewDate(s => ({
+    ...s,
+    reminderDays: s.reminderDays.includes(day) ? s.reminderDays.filter(d=>d!==day) : [...s.reminderDays, day].sort((a,b)=>b-a),
+  }));
+  const reminderHint = (delta) => {
+    if (delta === 0) return lang==='ua' ? '🎉 Сьогодні! Не забудьте привітати' : '🎉 Today! Don\'t forget';
+    if (delta === 1) return lang==='ua' ? '⚡ Завтра! Встигнемо доставити сьогодні' : '⚡ Tomorrow!';
+    if (delta === 3) return lang==='ua' ? '🔔 За 3 дні — добірка готова' : '🔔 In 3 days';
+    return null;
+  };
 
   const formatDelta = (d) => {
     if (d === 0) return T.today;
@@ -50,13 +61,41 @@ const TwaCalendar = ({ T, lang, cardStyle='rounded' }) => {
               <div key={e} onClick={()=>setNewDate({...newDate, icon:e})} style={{flex:1,padding:7,textAlign:'center',fontSize:18,background:newDate.icon===e?'rgba(138,171,110,0.2)':'#faf8f2',border:`1px solid ${newDate.icon===e?'#8aab6e':'rgba(45,80,22,0.1)'}`,borderRadius:6,cursor:'pointer'}}>{e}</div>
             ))}
           </div>
+
+          <label style={{display:'flex',alignItems:'center',gap:8,fontSize:11,color:'#1c3610',marginBottom:8,cursor:'pointer'}}>
+            <input type="checkbox" checked={newDate.repeatYearly} onChange={e=>setNewDate({...newDate, repeatYearly:e.target.checked})}/>
+            {lang==='ua' ? 'Повторювати щороку' : 'Repeat every year'}
+          </label>
+
+          <div style={{fontFamily:'"DM Mono",monospace',fontSize:9,color:'#888',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:6}}>
+            {lang==='ua' ? 'Нагадати за:' : 'Remind:'}
+          </div>
+          <div style={{display:'flex',gap:6,marginBottom:10}}>
+            {[7,3,1,0].map(day=>{
+              const active = newDate.reminderDays.includes(day);
+              return (
+                <div key={day} onClick={()=>toggleDay(day)} style={{flex:1,padding:8,textAlign:'center',fontSize:11,background:active?'#8aab6e':'#faf8f2',color:active?'#fff':'#1c3610',border:`1px solid ${active?'#8aab6e':'rgba(45,80,22,0.1)'}`,borderRadius:6,cursor:'pointer',fontFamily:'"DM Mono",monospace'}}>
+                  {day===0 ? (lang==='ua'?'у день':'today') : `${day} ${lang==='ua'?'дн':'d'}`}
+                </div>
+              );
+            })}
+          </div>
+
           <div style={{display:'flex',gap:6}}>
             <div onClick={()=>setAdding(false)} style={{flex:1,padding:9,textAlign:'center',fontSize:11,border:'1px solid rgba(45,80,22,0.13)',borderRadius:8,cursor:'pointer',color:'#444'}}>{T.skip}</div>
             <div onClick={()=>{
               if (!newDate.label) return;
               const colors=['#dda8ad','#c8a84b','#8aab6e','#a9c4e4'];
-              setDates([...dates,{id:'d'+Date.now(), label:{ua:newDate.label,en:newDate.label}, person:{ua:newDate.person,en:newDate.person}, date:newDate.date, dayDelta:14, color:colors[dates.length%4], icon:newDate.icon}]);
-              setNewDate({label:'',person:'',icon:'🎁',date:''});
+              setDates([...dates,{
+                id:'d'+Date.now(),
+                label:{ua:newDate.label,en:newDate.label},
+                person:{ua:newDate.person,en:newDate.person},
+                date:newDate.date, dayDelta:14,
+                color:colors[dates.length%4], icon:newDate.icon,
+                repeatYearly:newDate.repeatYearly,
+                reminderDays:newDate.reminderDays.length ? newDate.reminderDays : [3,1],
+              }]);
+              setNewDate({label:'',person:'',icon:'🎁',date:'',repeatYearly:true,reminderDays:[3,1]});
               setAdding(false);
             }} style={{flex:2,padding:9,textAlign:'center',fontSize:11,fontWeight:500,background:'#1c3610',color:'#faf8f2',borderRadius:8,cursor:'pointer'}}>{T.addDate}</div>
           </div>
@@ -66,19 +105,24 @@ const TwaCalendar = ({ T, lang, cardStyle='rounded' }) => {
       {/* Date list */}
       <div style={{padding:'0 22px 16px', display:'flex', flexDirection:'column', gap:8}}>
         <div style={{fontFamily:'"DM Mono",monospace',fontSize:9,letterSpacing:'0.14em',textTransform:'uppercase',color:'#888',marginBottom:2}}>{T.upcoming}</div>
-        {sorted.map(d=>(
-          <div key={d.id} style={{padding:'12px 14px', background:'#fff', border:'1px solid rgba(45,80,22,0.1)', borderRadius:radius, display:'flex', alignItems:'center', gap:12, position:'relative'}}>
-            <div style={{width:40,height:40,borderRadius:10,background:`${d.color}33`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:20}}>{d.icon}</div>
-            <div style={{flex:1}}>
-              <div style={{fontSize:13,fontWeight:600,color:'#1c3610'}}>{d.label[lang]} <span style={{color:'#888',fontWeight:400}}>· {d.person[lang]}</span></div>
-              <div style={{fontSize:11,color:'#888',marginTop:1}}>{formatDelta(d.dayDelta)}</div>
+        {sorted.map(d=>{
+          const hint = reminderHint(d.dayDelta);
+          const reminderLabel = (d.reminderDays || [3,1]).join(', ');
+          return (
+            <div key={d.id} style={{padding:'12px 14px', background:'#fff', border:'1px solid rgba(45,80,22,0.1)', borderRadius:radius, display:'flex', alignItems:'center', gap:12, position:'relative'}}>
+              <div style={{width:40,height:40,borderRadius:10,background:`${d.color}33`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:20}}>{d.icon}</div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:13,fontWeight:600,color:'#1c3610'}}>{d.label[lang]} <span style={{color:'#888',fontWeight:400}}>· {d.person[lang]}</span></div>
+                <div style={{fontSize:11,color:'#888',marginTop:1}}>{formatDelta(d.dayDelta)} · {lang==='ua'?'нагадаємо за':'remind in'} {reminderLabel} {lang==='ua'?'дн':'d'}{d.repeatYearly?(lang==='ua'?' · щороку':' · yearly'):''}</div>
+                {hint && <div style={{fontSize:11,color:'#1c3610',marginTop:4,fontWeight:500}}>{hint}</div>}
+              </div>
+              <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:3}}>
+                <div style={{fontFamily:'"Cormorant Garamond",serif',fontSize:18,color:'#1c3610',fontWeight:500,lineHeight:1}}>{d.date.split('-')[2]}</div>
+                <div style={{fontFamily:'"DM Mono",monospace',fontSize:8,color:'#888',letterSpacing:'0.1em',textTransform:'uppercase'}}>{['СІЧ','ЛЮТ','БЕР','КВІ','ТРА','ЧЕР','ЛИП','СЕР','ВЕР','ЖОВ','ЛИС','ГРУ'][parseInt(d.date.split('-')[1])-1]}</div>
+              </div>
             </div>
-            <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:3}}>
-              <div style={{fontFamily:'"Cormorant Garamond",serif',fontSize:18,color:'#1c3610',fontWeight:500,lineHeight:1}}>{d.date.split('-')[2]}</div>
-              <div style={{fontFamily:'"DM Mono",monospace',fontSize:8,color:'#888',letterSpacing:'0.1em',textTransform:'uppercase'}}>{['СІЧ','ЛЮТ','БЕР','КВІ','ТРА','ЧЕР','ЛИП','СЕР','ВЕР','ЖОВ','ЛИС','ГРУ'][parseInt(d.date.split('-')[1])-1]}</div>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
