@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { theme } from "../theme";
 import { api, type Product } from "../lib/api";
 import { tgId, haptic } from "../lib/twa";
