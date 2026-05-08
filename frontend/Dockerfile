@@ -9,5 +9,6 @@ RUN npm run build
 
 FROM nginx:1.27-alpine
 COPY --from=build /app/dist /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-EXPOSE 80
+# Use nginx's built-in template processor: it expands ${PORT} on container start.
+COPY nginx.conf /etc/nginx/templates/default.conf.template
+ENV PORT=80
