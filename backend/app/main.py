@@ -34,6 +34,7 @@ async def lifespan(app: FastAPI):
         drop_pending_updates=True,
     )
     log.info("webhook registered: %s", settings.webhook_url)
+    log.info("TWA_URL = %r", settings.twa_url or "(empty — WebApp buttons will be inert)")
 
     scheduler = make_scheduler(bot)
     scheduler.start()
