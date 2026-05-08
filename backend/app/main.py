@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api import ai, dates, greetings, orders, products, swipes
 from app.bot.bot import make_bot, make_dispatcher
 from app.config import settings
+from app.services.init_db import init_db
 from app.services.scheduler import make_scheduler
 
 logging.basicConfig(level=logging.INFO if not settings.debug else logging.DEBUG)
@@ -19,6 +20,9 @@ log = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Bootstrap DB on first run so the deployer doesn't have to ssh in for migrations.
+    await init_db()
+
     bot = make_bot()
     dp = await make_dispatcher()
     app.state.bot = bot
