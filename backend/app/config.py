@@ -1,4 +1,4 @@
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -31,6 +31,24 @@ class Settings(BaseSettings):
 
     twa_url: str = ""
     greeting_url: str = ""
+
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def _normalize_db_url(cls, v: str) -> str:
+        # Railway / Heroku give "postgres://..." or "postgresql://..." —
+        # force the asyncpg driver so SQLAlchemy's async engine works.
+        if not v:
+            return v
+        if v.startswith("postgres://"):
+            v = "postgresql://" + v[len("postgres://"):]
+        if v.startswith("postgresql://") and "+" not in v.split("://", 1)[0]:
+            v = "postgresql+asyncpg://" + v[len("postgresql://"):]
+        return v
+
+    @property
+    def sync_database_url(self) -> str:
+        # Alembic needs the sync (psycopg) form.
+        return self.database_url.replace("postgresql+asyncpg://", "postgresql+psycopg://", 1)
 
     @property
     def webhook_url(self) -> str:
