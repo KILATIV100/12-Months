@@ -45,6 +45,18 @@ class Settings(BaseSettings):
             v = "https://" + v
         return v.rstrip("/")
 
+    @field_validator("twa_url", mode="before")
+    @classmethod
+    def _normalize_twa_url(cls, v: str) -> str:
+        # Same defensive treatment as webhook_host: WebApp buttons require a
+        # valid HTTPS URL or Telegram silently renders a dead button.
+        if not v:
+            return v
+        v = v.strip()
+        if not v.startswith(("http://", "https://")):
+            v = "https://" + v
+        return v.rstrip("/")
+
     @field_validator("database_url", mode="before")
     @classmethod
     def _normalize_db_url(cls, v: str) -> str:

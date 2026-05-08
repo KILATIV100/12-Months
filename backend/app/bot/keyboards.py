@@ -32,13 +32,20 @@ def occasion_keyboard() -> InlineKeyboardMarkup:
     )
 
 
-def open_twa(label: str = "Відкрити 12 Months ↗", path: str = "") -> InlineKeyboardMarkup:
-    url = settings.twa_url
-    if path:
-        url = url.rstrip("/") + "/" + path.lstrip("/")
-    return InlineKeyboardMarkup(
-        inline_keyboard=[[InlineKeyboardButton(text=label, web_app=WebAppInfo(url=url))]]
-    )
+def open_twa(label: str = "Відкрити 12 Months ↗", tab: str = "") -> InlineKeyboardMarkup:
+    """Build either a WebApp button (preferred) or a regular URL button.
+
+    When TWA_URL isn't configured the WebApp button would render but be
+    unresponsive on tap, so fall back to a plain URL link to surface that
+    something is misconfigured rather than the bot looking broken.
+    """
+    base = settings.twa_url
+    url = f"{base}/?tab={tab}" if (base and tab) else (base or "")
+    if base:
+        button = InlineKeyboardButton(text=label, web_app=WebAppInfo(url=url))
+    else:
+        button = InlineKeyboardButton(text=f"{label} (TWA_URL not set)", url="https://t.me/")
+    return InlineKeyboardMarkup(inline_keyboard=[[button]])
 
 
 # ── Admin (TZ §06) ──
