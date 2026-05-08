@@ -32,6 +32,19 @@ class Settings(BaseSettings):
     twa_url: str = ""
     greeting_url: str = ""
 
+    @field_validator("webhook_host", mode="before")
+    @classmethod
+    def _normalize_webhook_host(cls, v: str) -> str:
+        # Telegram requires an HTTPS URL. Railway domains are HTTPS, but if the
+        # user enters the bare hostname we'd otherwise try to register
+        # "myhost/api/webhook" which Telegram silently ignores.
+        if not v:
+            return v
+        v = v.strip()
+        if not v.startswith(("http://", "https://")):
+            v = "https://" + v
+        return v.rstrip("/")
+
     @field_validator("database_url", mode="before")
     @classmethod
     def _normalize_db_url(cls, v: str) -> str:
