@@ -1,4 +1,14 @@
-const BASE = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+function resolveBase(): string {
+  const raw = (import.meta.env.VITE_API_URL ?? "").trim();
+  if (!raw) return "";
+  // Be forgiving if VITE_API_URL was set without a scheme (e.g. just the
+  // Railway hostname). Without https:// the browser treats it as a relative
+  // path and every API call lands on the frontend's SPA fallback.
+  const withScheme = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+  return withScheme.replace(/\/$/, "");
+}
+
+const BASE = resolveBase();
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
