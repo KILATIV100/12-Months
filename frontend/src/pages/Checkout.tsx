@@ -8,6 +8,7 @@ type Cart = {
   total: number;
   items: { product_id?: string; quantity: number }[];
   name?: string;
+  customDescription?: string;
 };
 
 export function Checkout({ cart, onComplete, onCancel }: { cart: Cart; onComplete: (qrToken: string | null) => void; onCancel: () => void }) {
@@ -36,6 +37,8 @@ export function Checkout({ cart, onComplete, onCancel }: { cart: Cart; onComplet
         tg_id: tgId(),
         type: cart.type,
         items: cart.items.filter(i => i.product_id).map(i => ({ product_id: i.product_id, quantity: i.quantity })),
+        custom_total: cart.type === "custom" ? cart.total : null,
+        custom_description: cart.type === "custom" ? cart.customDescription : null,
         delivery_type: delivery,
         delivery_at: today.toISOString(),
         address: delivery === "delivery" ? addr : null,

@@ -8,13 +8,14 @@ import { Cabinet } from "./pages/Cabinet";
 import { Checkout } from "./pages/Checkout";
 
 type Tab = "tinder" | "catalog" | "construct" | "calendar" | "cabinet";
-type Cart = { type: "ready" | "custom"; total: number; items: { product_id?: string; quantity: number }[]; name?: string };
+type Cart = { type: "ready" | "custom"; total: number; items: { product_id?: string; quantity: number }[]; name?: string; customDescription?: string };
 
 function App() {
   const initialTab: Tab = (new URLSearchParams(location.search).get("tab") as Tab) || "tinder";
   const [tab, setTab] = useState<Tab>(initialTab);
   const [cart, setCart] = useState<Cart | null>(null);
-  const [done, setDone] = useState<{ qr: string | null } | null>(null);
+  const [done, setDone] = useState<{ qr: string | null; orderId?: string } | null>(null);
+  const [tasteTags, setTasteTags] = useState<string[]>([]);
 
   if (done) {
     return (
@@ -51,9 +52,14 @@ function App() {
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100vh" }}>
       <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
-        {tab === "tinder" && <Tinder onComplete={() => setTab("catalog")} />}
-        {tab === "catalog" && <Catalog onSelect={p => setCart({ type: "ready", total: Number(p.base_price), items: [{ product_id: p.id, quantity: 1 }], name: p.name })} />}
-        {tab === "construct" && <Constructor onAddToCart={c => setCart({ type: "custom", total: c.total, items: [], name: "Букет з конструктора" })} />}
+        {tab === "tinder" && <Tinder onComplete={tags => { setTasteTags(tags); setTab("catalog"); }} />}
+        {tab === "catalog" && <Catalog filterTags={tasteTags} onSelect={p => setCart({ type: "ready", total: Number(p.base_price), items: [{ product_id: p.id, quantity: 1 }], name: p.name })} />}
+        {tab === "construct" && <Constructor onAddToCart={c => {
+          const parts: string[] = [];
+          if (c.base) parts.push(c.base.name);
+          for (const it of c.items as { el: { name: string }; qty: number }[]) parts.push(`${it.qty}× ${it.el.name}`);
+          setCart({ type: "custom", total: c.total, items: [], name: "Букет з конструктора", customDescription: parts.join(", ") });
+        }} />}
         {tab === "calendar" && <CalendarPage />}
         {tab === "cabinet" && <Cabinet />}
       </div>

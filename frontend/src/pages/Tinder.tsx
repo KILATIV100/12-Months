@@ -5,7 +5,7 @@ import { tgId, haptic } from "../lib/twa";
 
 const AI_AFTER = 10; // TZ §08: invoke Claude after 10+ swipes
 
-export function Tinder({ onComplete, lang = "ua" as const }: { onComplete?: () => void; lang?: "ua" | "en" }) {
+export function Tinder({ onComplete, lang = "ua" as const }: { onComplete?: (tasteTags: string[]) => void; lang?: "ua" | "en" }) {
   const [cards, setCards] = useState<Product[]>([]);
   const [idx, setIdx] = useState(0);
   const [liked, setLiked] = useState<Product[]>([]);
@@ -77,7 +77,10 @@ export function Tinder({ onComplete, lang = "ua" as const }: { onComplete?: () =
         </h2>
         <div style={{ fontSize: 13, color: "#666", maxWidth: 280, marginBottom: 24, lineHeight: 1.55 }}>{summary}</div>
         <button
-          onClick={onComplete}
+          onClick={() => {
+            const tags = Array.from(new Set(liked.flatMap(p => p.tags ?? [])));
+            onComplete?.(tags);
+          }}
           style={{ padding: "13px 22px", background: theme.green, color: theme.cream, border: "none", borderRadius: 14, fontSize: 13, fontWeight: 500, cursor: "pointer" }}
         >
           {lang === "ua" ? "Показати добірку" : "Show picks"} →
