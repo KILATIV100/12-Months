@@ -124,7 +124,7 @@ async def create_order(
             await order_accepted(bot, user.tg_id, _short(order.id), order.total_price, order.delivery_at or datetime.utcnow())
         except Exception:
             log.exception("Failed to notify buyer tg=%s about order %s", user.tg_id, order.id)
-        if settings.owner_tg_id and settings.owner_tg_id != user.tg_id:
+        if settings.owner_tg_id:
             try:
                 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
                 kb = InlineKeyboardMarkup(inline_keyboard=[[
