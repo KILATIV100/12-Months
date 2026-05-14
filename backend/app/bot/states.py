@@ -11,6 +11,19 @@ class AddProduct(StatesGroup):
     confirm = State()
 
 
+class EditPhoto(StatesGroup):
+    """/photo <ref> — replace the photo of an existing product."""
+    waiting = State()
+
+
+class AddFlower(StatesGroup):
+    """/addflower — add a bouquet element (flower/base/green/decor) for the Constructor."""
+    photo = State()
+    name = State()
+    type = State()
+    price = State()
+
+
 class AddDate(StatesGroup):
     label = State()
     person = State()
