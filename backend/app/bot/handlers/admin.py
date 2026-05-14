@@ -30,15 +30,34 @@ from app.bot.keyboards import (
     category_keyboard,
     confirm_add,
     confirm_delete,
+    element_type_keyboard,
+    order_actions,
     stock_grid,
 )
-from app.bot.states import AddProduct
+from app.bot.states import AddFlower, AddProduct, EditPhoto
 from app.db import async_session
-from app.models import Order, OrderStatus, Product
-from app.services.r2 import upload_bytes
+from app.models import BouquetElement, ElementType, Order, OrderStatus, Product
+from app.services.r2 import is_configured as r2_configured
+from app.services.r2 import upload as r2_upload
 
 log = logging.getLogger(__name__)
 router = Router(name="admin")
+
+
+STATUS_LABEL = {
+    OrderStatus.new: "Нове",
+    OrderStatus.in_work: "В роботі",
+    OrderStatus.ready: "Готове",
+    OrderStatus.delivered: "Доставлено",
+    OrderStatus.cancelled: "Скасовано",
+}
+
+
+async def _download_photo(bot: Bot, file_id: str) -> bytes:
+    file = await bot.get_file(file_id)
+    buf = io.BytesIO()
+    await bot.download_file(file.file_path, destination=buf)
+    return buf.getvalue()
 
 
 CATEGORY_LABELS = {
@@ -51,15 +70,30 @@ CATEGORY_LABELS = {
 
 # ───────── /admin ─────────
 
+async def _status_counts(session) -> dict[OrderStatus, int]:
+    rows = (await session.execute(
+        select(Order.status, func.count()).group_by(Order.status)
+    )).all()
+    return {status: count for status, count in rows}
+
+
 @router.message(Command("admin"))
 async def cmd_admin(message: Message) -> None:
     async with async_session() as session:
         user = await get_or_create_user(session, message.from_user.id, message.from_user.full_name)
         await session.commit()
-    if not is_admin(user):
-        await message.answer("Недостатньо прав. Якщо ви адмін — попросіть власника надати доступ.")
-        return
-    await message.answer("Меню адміна:", reply_markup=admin_main())
+        if not is_admin(user):
+            await message.answer("Недостатньо прав. Якщо ви адмін — попросіть власника надати доступ.")
+            return
+        counts = await _status_counts(session)
+    await message.answer(
+        "Меню адміна:",
+        reply_markup=admin_main(
+            new=counts.get(OrderStatus.new, 0),
+            in_work=counts.get(OrderStatus.in_work, 0),
+            ready=counts.get(OrderStatus.ready, 0),
+        ),
+    )
 
 
 # ───────── /add — 6 steps per TZ §06 ─────────
@@ -83,17 +117,20 @@ async def cmd_add(message: Message, state: FSMContext, bot: Bot) -> None:
 @router.message(AddProduct.photo, F.photo)
 async def add_photo(message: Message, state: FSMContext, bot: Bot) -> None:
     largest = message.photo[-1]
-    file = await bot.get_file(largest.file_id)
-    buf = io.BytesIO()
-    await bot.download_file(file.file_path, destination=buf)
-    try:
-        url = upload_bytes(buf.getvalue(), key=f"products/{largest.file_unique_id}.jpg", content_type="image/jpeg")
-    except RuntimeError:
-        # R2 not configured — keep file_id reference
-        url = f"tg://{largest.file_id}"
+    url: str | None = None
+    if r2_configured():
+        try:
+            raw = await _download_photo(bot, largest.file_id)
+            url = await r2_upload(raw, key=f"products/{largest.file_unique_id}.jpg", content_type="image/jpeg")
+        except Exception:
+            log.exception("R2 upload failed for product photo")
+    if url is None:
+        await message.answer(
+            "⚠️ Фото не вдалося завантажити (R2 не налаштований або помилка). "
+            "Продовжуємо без фото — додасте пізніше через /photo.")
     await state.update_data(image_url=url)
     await state.set_state(AddProduct.name)
-    await message.answer("✅ Фото збережено!\n\n<b>КРОК 2/6 — НАЗВА</b>\n✏️ Введіть назву позиції:", parse_mode="HTML")
+    await message.answer("✅ Крок 1 готовий!\n\n<b>КРОК 2/6 — НАЗВА</b>\n✏️ Введіть назву позиції:", parse_mode="HTML")
 
 
 @router.message(AddProduct.photo)
@@ -187,6 +224,163 @@ async def add_edit(cb: CallbackQuery, state: FSMContext) -> None:
     await state.set_state(AddProduct.name)
     await cb.message.answer("Окей, введіть нову назву:")
     await cb.answer()
+
+
+# ───────── /photo — replace a product's photo ─────────
+
+@router.message(Command("photo"))
+async def cmd_photo(message: Message, command: CommandObject, state: FSMContext) -> None:
+    if not command.args:
+        await message.answer("Використання: /photo <id або назва позиції>")
+        return
+    async with async_session() as session:
+        user = await get_or_create_user(session, message.from_user.id, message.from_user.full_name)
+        if not can_edit_catalog(user):
+            await message.answer("Недостатньо прав.")
+            return
+        product = await _find_product(session, command.args)
+        if not product:
+            await message.answer("Не знайшов позицію.")
+            return
+        pid, pname = str(product.id), product.name
+    await state.clear()
+    await state.set_state(EditPhoto.waiting)
+    await state.update_data(product_id=pid)
+    await message.answer(f"📸 Надішліть нове фото для «{pname}».")
+
+
+@router.message(EditPhoto.waiting, F.photo)
+async def photo_received(message: Message, state: FSMContext, bot: Bot) -> None:
+    if not r2_configured():
+        await message.answer("⚠️ R2 не налаштований — фото неможливо зберегти.")
+        await state.clear()
+        return
+    data = await state.get_data()
+    largest = message.photo[-1]
+    try:
+        raw = await _download_photo(bot, largest.file_id)
+        url = await r2_upload(raw, key=f"products/{largest.file_unique_id}.jpg", content_type="image/jpeg")
+    except Exception:
+        log.exception("R2 upload failed for /photo")
+        await message.answer("Помилка завантаження. Спробуйте ще раз.")
+        return
+    async with async_session() as session:
+        product = await session.get(Product, data["product_id"])
+        if product:
+            product.image_url = url
+            await session.commit()
+            name = product.name
+        else:
+            name = "?"
+    await state.clear()
+    await message.answer(f"✅ Фото оновлено для «{name}».")
+
+
+@router.message(EditPhoto.waiting)
+async def photo_invalid(message: Message) -> None:
+    await message.answer("Очікую фото. Або /cancel.")
+
+
+# ───────── /addflower — add a Constructor element ─────────
+
+@router.message(Command("addflower"))
+async def cmd_addflower(message: Message, state: FSMContext) -> None:
+    async with async_session() as session:
+        user = await get_or_create_user(session, message.from_user.id, message.from_user.full_name)
+        await session.commit()
+    if not can_edit_catalog(user):
+        await message.answer("Недостатньо прав.")
+        return
+    await state.clear()
+    await state.set_state(AddFlower.photo)
+    await message.answer(
+        "<b>Новий елемент конструктора · КРОК 1/4 — ФОТО</b>\n"
+        "📸 Надішліть фото квітки/основи/зелені/декору, або /skip щоб без фото.",
+        parse_mode="HTML",
+    )
+
+
+@router.message(AddFlower.photo, F.photo)
+async def addflower_photo(message: Message, state: FSMContext, bot: Bot) -> None:
+    largest = message.photo[-1]
+    url: str | None = None
+    if r2_configured():
+        try:
+            raw = await _download_photo(bot, largest.file_id)
+            url = await r2_upload(raw, key=f"elements/{largest.file_unique_id}.jpg", content_type="image/jpeg")
+        except Exception:
+            log.exception("R2 upload failed for element photo")
+    await state.update_data(image_url=url)
+    await state.set_state(AddFlower.name)
+    await message.answer("<b>КРОК 2/4 — НАЗВА</b>\n✏️ Введіть назву елемента:", parse_mode="HTML")
+
+
+@router.message(AddFlower.photo, Command("skip"))
+async def addflower_skip_photo(message: Message, state: FSMContext) -> None:
+    await state.update_data(image_url=None)
+    await state.set_state(AddFlower.name)
+    await message.answer("<b>КРОК 2/4 — НАЗВА</b>\n✏️ Введіть назву елемента:", parse_mode="HTML")
+
+
+@router.message(AddFlower.photo)
+async def addflower_photo_invalid(message: Message) -> None:
+    await message.answer("Очікую фото або /skip.")
+
+
+@router.message(AddFlower.name)
+async def addflower_name(message: Message, state: FSMContext) -> None:
+    name = message.text.strip()[:100]
+    if not name:
+        await message.answer("Назва не може бути пустою.")
+        return
+    await state.update_data(name=name)
+    await state.set_state(AddFlower.type)
+    await message.answer("<b>КРОК 3/4 — ТИП</b>\nОберіть тип:", parse_mode="HTML", reply_markup=element_type_keyboard())
+
+
+@router.callback_query(AddFlower.type, F.data.startswith("eltype:"))
+async def addflower_type(cb: CallbackQuery, state: FSMContext) -> None:
+    el_type = cb.data.split(":", 1)[1]
+    await state.update_data(type=el_type)
+    await state.set_state(AddFlower.price)
+    await cb.message.answer("<b>КРОК 4/4 — ЦІНА</b>\n💰 Ціна за одиницю (грн):", parse_mode="HTML")
+    await cb.answer()
+
+
+@router.message(AddFlower.price)
+async def addflower_price(message: Message, state: FSMContext) -> None:
+    try:
+        price = Decimal(message.text.strip().replace(",", "."))
+    except InvalidOperation:
+        await message.answer("Не зрозумів ціну. Введіть число, наприклад 90.")
+        return
+    data = await state.get_data()
+    async with async_session() as session:
+        max_sort = await session.scalar(select(func.max(BouquetElement.sort_order))) or 0
+        element = BouquetElement(
+            name=data["name"],
+            type=ElementType(data["type"]),
+            price_per_unit=price,
+            image_url=data.get("image_url"),
+            emoji="🌸",
+            color_tags=[],
+            sort_order=max_sort + 1,
+            is_available=True,
+        )
+        session.add(element)
+        await session.commit()
+        await session.refresh(element)
+    await state.clear()
+    await message.answer(f"✓ Елемент «{element.name}» додано в конструктор.")
+
+
+# ───────── /cancel — abort any FSM flow ─────────
+
+@router.message(Command("cancel"))
+async def cmd_cancel(message: Message, state: FSMContext) -> None:
+    current = await state.get_state()
+    await state.clear()
+    await message.answer("Скасовано." if current else "Немає активної дії.")
 
 
 # ───────── /stock — morning stock check ─────────
@@ -386,19 +580,35 @@ async def cmd_orders(message: Message) -> None:
         if not is_admin(user):
             await message.answer("Недостатньо прав.")
             return
-        new_orders = (await session.scalars(
-            select(Order).where(Order.status == OrderStatus.new).order_by(Order.created_at.desc()).limit(10)
+        # Active orders: anything not delivered/cancelled, freshest first.
+        active = (await session.scalars(
+            select(Order)
+            .where(Order.status.in_([OrderStatus.new, OrderStatus.in_work, OrderStatus.ready]))
+            .order_by(Order.created_at.desc())
+            .limit(15)
         )).all()
-    if not new_orders:
-        await message.answer("Нових замовлень немає.")
+    if not active:
+        await message.answer("Активних замовлень немає. 🌿")
         return
-    lines = [f"<b>Нові замовлення:</b>"]
-    for o in new_orders:
-        lines.append(
-            f"#{str(o.id)[:8]} · {o.total_price} грн · "
-            f"{o.delivery_at:%d.%m %H:%M}" if o.delivery_at else f"#{str(o.id)[:8]} · {o.total_price} грн"
+    await message.answer(f"<b>Активні замовлення: {len(active)}</b>", parse_mode="HTML")
+    for o in active:
+        addr = o.address or "Самовивіз"
+        slot = f"{o.delivery_at:%d.%m %H:%M}" if o.delivery_at else "час не вказано"
+        text = (
+            f"№{str(o.id)[:8].upper()} · <b>{STATUS_LABEL.get(o.status, o.status)}</b>\n"
+            f"💰 {o.total_price} грн\n"
+            f"📍 {addr}\n"
+            f"⏱ {slot}"
         )
-    await message.answer("\n".join(lines), parse_mode="HTML")
+        if o.recipient_name or o.recipient_phone:
+            text += f"\n👤 {o.recipient_name or ''} {o.recipient_phone or ''}".rstrip()
+        if o.comment:
+            text += f"\n💬 {o.comment}"
+        await message.answer(
+            text,
+            parse_mode="HTML",
+            reply_markup=order_actions(str(o.id), o.status.value),
+        )
 
 
 @router.message(Command("stats"))

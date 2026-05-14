@@ -50,10 +50,21 @@ def open_twa(label: str = "Відкрити 12 Months ↗", tab: str = "") -> In
 
 # ── Admin (TZ §06) ──
 
-def admin_main() -> InlineKeyboardMarkup:
+def admin_main(new: int = 0, in_work: int = 0, ready: int = 0) -> InlineKeyboardMarkup:
+    """Admin menu. Counts are baked into the button labels per TZ §06 mock."""
+    orders_label = "📋 Замовлення"
+    badges = []
+    if new:
+        badges.append(f"{new} нових")
+    if in_work:
+        badges.append(f"{in_work} в роботі")
+    if ready:
+        badges.append(f"{ready} готових")
+    if badges:
+        orders_label += f" · {', '.join(badges)}"
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="📋 Замовлення", callback_data="adm:orders")],
+            [InlineKeyboardButton(text=orders_label, callback_data="adm:orders")],
             [InlineKeyboardButton(text="🌸 Асортимент", callback_data="adm:catalog")],
             [InlineKeyboardButton(text="📦 Оновити наявність", callback_data="adm:stock")],
             [InlineKeyboardButton(text="📊 Статистика", callback_data="adm:stats")],
@@ -72,6 +83,33 @@ def category_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[[InlineKeyboardButton(text=label, callback_data=f"cat:{key}")] for label, key in cats]
     )
+
+
+def element_type_keyboard() -> InlineKeyboardMarkup:
+    """Bouquet element types for /addflower (maps to ElementType enum)."""
+    types = [
+        ("🌹 Квітка", "flower"),
+        ("📦 Основа", "base"),
+        ("🌿 Зелень", "green"),
+        ("🎀 Декор", "decor"),
+    ]
+    return InlineKeyboardMarkup(
+        inline_keyboard=[[InlineKeyboardButton(text=label, callback_data=f"eltype:{key}")] for label, key in types]
+    )
+
+
+def order_actions(order_id: str, status: str) -> InlineKeyboardMarkup:
+    """Per-order inline buttons for the /orders list — drives the status flow."""
+    next_step = {"new": "work", "in_work": "ready", "ready": "delivered"}.get(status)
+    next_label = {
+        "work": "▶️ Взяти в роботу",
+        "ready": "✅ Готово",
+        "delivered": "🚚 Доставлено",
+    }.get(next_step or "")
+    rows: list[list[InlineKeyboardButton]] = []
+    if next_step and next_label:
+        rows.append([InlineKeyboardButton(text=next_label, callback_data=f"ord:{next_step}:{order_id}")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
 def confirm_add() -> InlineKeyboardMarkup:
