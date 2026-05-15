@@ -1,32 +1,26 @@
-"""TZ §06 — admin commands: /admin, /add (6 steps), /stock, /hide, /show, /price, /del, /stats, /orders."""
+"""TZ §06 — admin commands + inline-button equivalents.
+
+Every action exists both as a slash command and as a button in the /admin
+menu. The slash handlers and the adm:* callback handlers share the same
+private render/start helpers so behaviour can't drift.
+"""
 from __future__ import annotations
 
 import io
 import logging
-from collections import Counter
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 from decimal import Decimal, InvalidOperation
 
 from aiogram import Bot, F, Router
 from aiogram.filters import Command, CommandObject
 from aiogram.fsm.context import FSMContext
-from aiogram.types import (
-    BufferedInputFile,
-    CallbackQuery,
-    InlineKeyboardButton,
-    InlineKeyboardMarkup,
-    Message,
-)
+from aiogram.types import CallbackQuery, Message
 from sqlalchemy import func, select
 
-from app.bot.access import (
-    can_edit_catalog,
-    get_or_create_user,
-    is_admin,
-    is_owner,
-)
+from app.bot.access import can_edit_catalog, get_or_create_user, is_admin, is_owner
 from app.bot.keyboards import (
     admin_main,
+    back_to_admin,
     category_keyboard,
     confirm_add,
     confirm_delete,
@@ -36,7 +30,7 @@ from app.bot.keyboards import (
 )
 from app.bot.states import AddFlower, AddProduct, EditPhoto
 from app.db import async_session
-from app.models import BouquetElement, ElementType, Order, OrderStatus, Product
+from app.models import BouquetElement, ElementType, Order, OrderItem, OrderStatus, Product, User
 from app.services.r2 import is_configured as r2_configured
 from app.services.r2 import upload as r2_upload
 
@@ -44,6 +38,12 @@ log = logging.getLogger(__name__)
 router = Router(name="admin")
 
 
+CATEGORY_LABELS = {
+    "ready": "💐 Готові букети",
+    "single": "🌹 Поштучно",
+    "decor": "🎀 Декор",
+    "green": "🌿 Зелень",
+}
 STATUS_LABEL = {
     OrderStatus.new: "Нове",
     OrderStatus.in_work: "В роботі",
@@ -53,6 +53,15 @@ STATUS_LABEL = {
 }
 
 
+# ─────────────────────────── shared helpers ───────────────────────────
+
+async def _load_user(tg_id: int, name: str | None) -> User:
+    async with async_session() as session:
+        user = await get_or_create_user(session, tg_id, name)
+        await session.commit()
+        return user
+
+
 async def _download_photo(bot: Bot, file_id: str) -> bytes:
     file = await bot.get_file(file_id)
     buf = io.BytesIO()
@@ -60,33 +69,30 @@ async def _download_photo(bot: Bot, file_id: str) -> bytes:
     return buf.getvalue()
 
 
-CATEGORY_LABELS = {
-    "ready": "💐 Готові букети",
-    "single": "🌹 Поштучно",
-    "decor": "🎀 Декор",
-    "green": "🌿 Зелень",
-}
-
-
-# ───────── /admin ─────────
-
 async def _status_counts(session) -> dict[OrderStatus, int]:
-    rows = (await session.execute(
-        select(Order.status, func.count()).group_by(Order.status)
-    )).all()
+    rows = (await session.execute(select(Order.status, func.count()).group_by(Order.status))).all()
     return {status: count for status, count in rows}
 
 
-@router.message(Command("admin"))
-async def cmd_admin(message: Message) -> None:
+async def _find_product(session, ref: str) -> Product | None:
+    """Lookup product either by short id prefix or by name substring."""
+    products = (await session.scalars(select(Product).where(Product.is_deleted.is_(False)))).all()
+    ref_low = ref.strip().lower()
+    for p in products:
+        if str(p.id).startswith(ref_low) or p.name.lower() == ref_low:
+            return p
+    for p in products:
+        if ref_low in p.name.lower():
+            return p
+    return None
+
+
+# ── render helpers: take a Message to reply into (works for cb.message too) ──
+
+async def _render_admin_menu(target: Message) -> None:
     async with async_session() as session:
-        user = await get_or_create_user(session, message.from_user.id, message.from_user.full_name)
-        await session.commit()
-        if not is_admin(user):
-            await message.answer("Недостатньо прав. Якщо ви адмін — попросіть власника надати доступ.")
-            return
         counts = await _status_counts(session)
-    await message.answer(
+    await target.answer(
         "Меню адміна:",
         reply_markup=admin_main(
             new=counts.get(OrderStatus.new, 0),
@@ -96,22 +102,225 @@ async def cmd_admin(message: Message) -> None:
     )
 
 
-# ───────── /add — 6 steps per TZ §06 ─────────
-
-@router.message(Command("add"))
-async def cmd_add(message: Message, state: FSMContext, bot: Bot) -> None:
+async def _render_orders(target: Message) -> None:
     async with async_session() as session:
-        user = await get_or_create_user(session, message.from_user.id, message.from_user.full_name)
-        await session.commit()
-    if not can_edit_catalog(user):
-        await message.answer("Недостатньо прав для додавання товарів.")
+        active = (await session.scalars(
+            select(Order)
+            .where(Order.status.in_([OrderStatus.new, OrderStatus.in_work, OrderStatus.ready]))
+            .order_by(Order.created_at.desc())
+            .limit(15)
+        )).all()
+    if not active:
+        await target.answer("Активних замовлень немає. 🌿", reply_markup=back_to_admin())
         return
+    await target.answer(f"<b>Активні замовлення: {len(active)}</b>", parse_mode="HTML")
+    for o in active:
+        addr = o.address or "Самовивіз"
+        slot = f"{o.delivery_at:%d.%m %H:%M}" if o.delivery_at else "час не вказано"
+        text = (
+            f"№{str(o.id)[:8].upper()} · <b>{STATUS_LABEL.get(o.status, o.status)}</b>\n"
+            f"💰 {o.total_price} грн\n📍 {addr}\n⏱ {slot}"
+        )
+        if o.recipient_name or o.recipient_phone:
+            text += f"\n👤 {o.recipient_name or ''} {o.recipient_phone or ''}".rstrip()
+        if o.comment:
+            text += f"\n💬 {o.comment}"
+        await target.answer(text, parse_mode="HTML", reply_markup=order_actions(str(o.id), o.status.value))
+    await target.answer("———", reply_markup=back_to_admin())
+
+
+async def _render_catalog(target: Message) -> None:
+    async with async_session() as session:
+        products = (await session.scalars(
+            select(Product).where(Product.is_deleted.is_(False)).order_by(Product.name)
+        )).all()
+    if not products:
+        await target.answer("Каталог порожній. Додайте перший букет.", reply_markup=back_to_admin())
+        return
+    lines = [f"<b>Асортимент ({len(products)}):</b>"]
+    for p in products:
+        mark = "✅" if p.is_available else "❌"
+        photo = "🖼" if p.image_url else "▫️"
+        lines.append(f"{mark}{photo} {p.name} · {p.base_price} грн · <code>{str(p.id)[:8]}</code>")
+    lines.append("\n/photo &lt;id&gt; — оновити фото\n/price &lt;id&gt; &lt;грн&gt; — змінити ціну\n/hide /show /del &lt;id&gt;")
+    await target.answer("\n".join(lines), parse_mode="HTML", reply_markup=back_to_admin())
+
+
+async def _render_stock(target: Message) -> None:
+    async with async_session() as session:
+        rows = (await session.scalars(
+            select(Product).where(Product.is_deleted.is_(False)).order_by(Product.name).limit(40)
+        )).all()
+    items = [(str(p.id), p.name, p.is_available) for p in rows]
+    if not items:
+        await target.answer("Немає позицій для оновлення.", reply_markup=back_to_admin())
+        return
+    await target.answer(
+        "Ранкове оновлення наявності.\nТапніть позицію, щоб переключити ✅/❌, потім «Зберегти».",
+        reply_markup=stock_grid(items),
+    )
+
+
+async def _render_stats(target: Message, period: str = "day") -> None:
+    if period in {"week", "тиждень"}:
+        since, label = datetime.utcnow() - timedelta(days=7), "тиждень"
+    elif period in {"month", "місяць"}:
+        since, label = datetime.utcnow() - timedelta(days=30), "місяць"
+    else:
+        since, label = datetime.utcnow() - timedelta(days=1), "день"
+    async with async_session() as session:
+        orders = (await session.scalars(select(Order).where(Order.created_at >= since))).all()
+        order_ids = [o.id for o in orders]
+        rows: list[tuple[Product, int]] = []
+        if order_ids:
+            rows = (await session.execute(
+                select(Product, func.sum(OrderItem.quantity))
+                .join(OrderItem, OrderItem.product_id == Product.id)
+                .where(OrderItem.order_id.in_(order_ids))
+                .group_by(Product.id)
+                .order_by(func.sum(OrderItem.quantity).desc())
+                .limit(3)
+            )).all()
+    total = sum((o.total_price for o in orders), Decimal("0"))
+    cnt = len(orders)
+    avg = (total / cnt) if cnt else Decimal("0")
+    top_label = ", ".join(f"{p.name}×{c}" for p, c in rows) or "—"
+    await target.answer(
+        f"<b>Статистика за {label}:</b>\n"
+        f"Замовлень: {cnt}\nВиручка: {total} грн\nСередній чек: {avg:.0f} грн\nТоп: {top_label}",
+        parse_mode="HTML",
+        reply_markup=back_to_admin(),
+    )
+
+
+# ── FSM starters ──
+
+async def _start_add(target: Message, state: FSMContext) -> None:
     await state.clear()
     await state.set_state(AddProduct.photo)
-    await message.answer(
+    await target.answer(
         "<b>КРОК 1/6 — ФОТО</b>\n📸 Надішліть фото букету.\nБажано квадрат або портрет, гарне освітлення.",
         parse_mode="HTML",
     )
+
+
+async def _start_addflower(target: Message, state: FSMContext) -> None:
+    await state.clear()
+    await state.set_state(AddFlower.photo)
+    await target.answer(
+        "<b>Новий елемент конструктора · КРОК 1/4 — ФОТО</b>\n"
+        "📸 Надішліть фото квітки/основи/зелені/декору, або /skip щоб без фото.",
+        parse_mode="HTML",
+    )
+
+
+# ─────────────────────────── /admin + adm:* callbacks ───────────────────────────
+
+@router.message(Command("admin"))
+async def cmd_admin(message: Message) -> None:
+    user = await _load_user(message.from_user.id, message.from_user.full_name)
+    if not is_admin(user):
+        await message.answer("Недостатньо прав. Якщо ви адмін — попросіть власника надати доступ.")
+        return
+    await _render_admin_menu(message)
+
+
+@router.callback_query(F.data == "adm:menu")
+async def cb_menu(cb: CallbackQuery) -> None:
+    user = await _load_user(cb.from_user.id, cb.from_user.full_name)
+    if not is_admin(user):
+        await cb.answer("Недостатньо прав", show_alert=True)
+        return
+    await _render_admin_menu(cb.message)
+    await cb.answer()
+
+
+@router.callback_query(F.data == "adm:orders")
+async def cb_orders(cb: CallbackQuery) -> None:
+    user = await _load_user(cb.from_user.id, cb.from_user.full_name)
+    if not is_admin(user):
+        await cb.answer("Недостатньо прав", show_alert=True)
+        return
+    await _render_orders(cb.message)
+    await cb.answer()
+
+
+@router.callback_query(F.data == "adm:catalog")
+async def cb_catalog(cb: CallbackQuery) -> None:
+    user = await _load_user(cb.from_user.id, cb.from_user.full_name)
+    if not is_admin(user):
+        await cb.answer("Недостатньо прав", show_alert=True)
+        return
+    await _render_catalog(cb.message)
+    await cb.answer()
+
+
+@router.callback_query(F.data == "adm:stock")
+async def cb_stock(cb: CallbackQuery) -> None:
+    user = await _load_user(cb.from_user.id, cb.from_user.full_name)
+    if not is_admin(user):
+        await cb.answer("Недостатньо прав", show_alert=True)
+        return
+    await _render_stock(cb.message)
+    await cb.answer()
+
+
+@router.callback_query(F.data == "adm:stats")
+async def cb_stats(cb: CallbackQuery) -> None:
+    user = await _load_user(cb.from_user.id, cb.from_user.full_name)
+    if not is_owner(user):
+        await cb.answer("Статистика — лише для власника", show_alert=True)
+        return
+    await _render_stats(cb.message, "day")
+    await cb.answer()
+
+
+@router.callback_query(F.data == "adm:settings")
+async def cb_settings(cb: CallbackQuery) -> None:
+    user = await _load_user(cb.from_user.id, cb.from_user.full_name)
+    if not is_admin(user):
+        await cb.answer("Недостатньо прав", show_alert=True)
+        return
+    await cb.message.answer(
+        "<b>⚙️ Налаштування</b>\n"
+        f"Роль: {user.role.value}\n"
+        f"R2 для фото: {'підключено' if r2_configured() else '❌ не налаштовано'}\n\n"
+        "Керування адмінами — у наступних версіях.",
+        parse_mode="HTML",
+        reply_markup=back_to_admin(),
+    )
+    await cb.answer()
+
+
+@router.callback_query(F.data == "adm:add")
+async def cb_add(cb: CallbackQuery, state: FSMContext) -> None:
+    user = await _load_user(cb.from_user.id, cb.from_user.full_name)
+    if not can_edit_catalog(user):
+        await cb.answer("Недостатньо прав", show_alert=True)
+        return
+    await _start_add(cb.message, state)
+    await cb.answer()
+
+
+@router.callback_query(F.data == "adm:addflower")
+async def cb_addflower(cb: CallbackQuery, state: FSMContext) -> None:
+    user = await _load_user(cb.from_user.id, cb.from_user.full_name)
+    if not can_edit_catalog(user):
+        await cb.answer("Недостатньо прав", show_alert=True)
+        return
+    await _start_addflower(cb.message, state)
+    await cb.answer()
+
+
+# ─────────────────────────── /add — 6 steps ───────────────────────────
+
+@router.message(Command("add"))
+async def cmd_add(message: Message, state: FSMContext) -> None:
+    user = await _load_user(message.from_user.id, message.from_user.full_name)
+    if not can_edit_catalog(user):
+        await message.answer("Недостатньо прав для додавання товарів.")
+        return
+    await _start_add(message, state)
 
 
 @router.message(AddProduct.photo, F.photo)
@@ -181,9 +390,7 @@ async def add_composition(message: Message, state: FSMContext) -> None:
     cat_label = CATEGORY_LABELS.get(data["category"], data["category"])
     summary = (
         "<b>КРОК 6/6 — ПІДТВЕРДЖЕННЯ</b>\nПеревірте:\n"
-        f"📌 {data['name']}\n"
-        f"💰 {data['price']} грн · {cat_label}\n"
-        f"📝 {composition}"
+        f"📌 {data['name']}\n💰 {data['price']} грн · {cat_label}\n📝 {composition}"
     )
     await state.set_state(AddProduct.confirm)
     await message.answer(summary, parse_mode="HTML", reply_markup=confirm_add())
@@ -208,14 +415,14 @@ async def add_publish(cb: CallbackQuery, state: FSMContext) -> None:
         await session.commit()
         await session.refresh(product)
     await state.clear()
-    await cb.message.answer(f"✓ Букет «{product.name}» додано в каталог.")
+    await cb.message.answer(f"✓ Букет «{product.name}» додано в каталог.", reply_markup=back_to_admin())
     await cb.answer()
 
 
 @router.callback_query(AddProduct.confirm, F.data == "add:cancel")
 async def add_cancel(cb: CallbackQuery, state: FSMContext) -> None:
     await state.clear()
-    await cb.message.answer("Скасовано.")
+    await cb.message.answer("Скасовано.", reply_markup=back_to_admin())
     await cb.answer()
 
 
@@ -226,7 +433,7 @@ async def add_edit(cb: CallbackQuery, state: FSMContext) -> None:
     await cb.answer()
 
 
-# ───────── /photo — replace a product's photo ─────────
+# ─────────────────────────── /photo ───────────────────────────
 
 @router.message(Command("photo"))
 async def cmd_photo(message: Message, command: CommandObject, state: FSMContext) -> None:
@@ -273,7 +480,7 @@ async def photo_received(message: Message, state: FSMContext, bot: Bot) -> None:
         else:
             name = "?"
     await state.clear()
-    await message.answer(f"✅ Фото оновлено для «{name}».")
+    await message.answer(f"✅ Фото оновлено для «{name}».", reply_markup=back_to_admin())
 
 
 @router.message(EditPhoto.waiting)
@@ -281,23 +488,15 @@ async def photo_invalid(message: Message) -> None:
     await message.answer("Очікую фото. Або /cancel.")
 
 
-# ───────── /addflower — add a Constructor element ─────────
+# ─────────────────────────── /addflower ───────────────────────────
 
 @router.message(Command("addflower"))
 async def cmd_addflower(message: Message, state: FSMContext) -> None:
-    async with async_session() as session:
-        user = await get_or_create_user(session, message.from_user.id, message.from_user.full_name)
-        await session.commit()
+    user = await _load_user(message.from_user.id, message.from_user.full_name)
     if not can_edit_catalog(user):
         await message.answer("Недостатньо прав.")
         return
-    await state.clear()
-    await state.set_state(AddFlower.photo)
-    await message.answer(
-        "<b>Новий елемент конструктора · КРОК 1/4 — ФОТО</b>\n"
-        "📸 Надішліть фото квітки/основи/зелені/декору, або /skip щоб без фото.",
-        parse_mode="HTML",
-    )
+    await _start_addflower(message, state)
 
 
 @router.message(AddFlower.photo, F.photo)
@@ -371,10 +570,10 @@ async def addflower_price(message: Message, state: FSMContext) -> None:
         await session.commit()
         await session.refresh(element)
     await state.clear()
-    await message.answer(f"✓ Елемент «{element.name}» додано в конструктор.")
+    await message.answer(f"✓ Елемент «{element.name}» додано в конструктор.", reply_markup=back_to_admin())
 
 
-# ───────── /cancel — abort any FSM flow ─────────
+# ─────────────────────────── /cancel ───────────────────────────
 
 @router.message(Command("cancel"))
 async def cmd_cancel(message: Message, state: FSMContext) -> None:
@@ -383,25 +582,15 @@ async def cmd_cancel(message: Message, state: FSMContext) -> None:
     await message.answer("Скасовано." if current else "Немає активної дії.")
 
 
-# ───────── /stock — morning stock check ─────────
+# ─────────────────────────── /stock ───────────────────────────
 
 @router.message(Command("stock"))
 async def cmd_stock(message: Message) -> None:
-    async with async_session() as session:
-        user = await get_or_create_user(session, message.from_user.id, message.from_user.full_name)
-        await session.commit()
+    user = await _load_user(message.from_user.id, message.from_user.full_name)
     if not is_admin(user):
         await message.answer("Недостатньо прав.")
         return
-    async with async_session() as session:
-        rows = (await session.scalars(
-            select(Product).where(Product.is_deleted.is_(False)).order_by(Product.name).limit(40)
-        )).all()
-    items = [(str(p.id), p.name, p.is_available) for p in rows]
-    await message.answer(
-        "Ранкове оновлення наявності.\nТапніть позицію, щоб переключити ✅/❌, потім «Зберегти».",
-        reply_markup=stock_grid(items),
-    )
+    await _render_stock(message)
 
 
 @router.callback_query(F.data.startswith("st:t:"))
@@ -422,25 +611,11 @@ async def stock_toggle(cb: CallbackQuery) -> None:
 
 @router.callback_query(F.data == "st:save")
 async def stock_save(cb: CallbackQuery) -> None:
-    await cb.message.answer("Збережено. Доброго ранку! ☕")
+    await cb.message.answer("Збережено. Доброго ранку! ☕", reply_markup=back_to_admin())
     await cb.answer()
 
 
-# ───────── /hide /show /price /del — quick commands ─────────
-
-async def _find_product(session, ref: str) -> Product | None:
-    """Lookup product either by short id prefix or by name substring."""
-    stmt = select(Product).where(Product.is_deleted.is_(False))
-    products = (await session.scalars(stmt)).all()
-    ref_low = ref.strip().lower()
-    for p in products:
-        if str(p.id).startswith(ref_low) or p.name.lower() == ref_low:
-            return p
-    for p in products:
-        if ref_low in p.name.lower():
-            return p
-    return None
-
+# ─────────────────────────── /hide /show /price /del ───────────────────────────
 
 @router.message(Command("hide"))
 async def cmd_hide(message: Message, command: CommandObject) -> None:
@@ -521,22 +696,20 @@ async def cmd_del(message: Message, command: CommandObject) -> None:
         if not product:
             await message.answer("Не знайшов позицію.")
             return
-        # Block delete if there are active orders
         active = await session.scalar(
             select(func.count())
             .select_from(Order)
             .join(Order.items)
-            .where(
-                Order.status.in_([OrderStatus.new, OrderStatus.in_work, OrderStatus.ready]),
-            )
+            .where(Order.status.in_([OrderStatus.new, OrderStatus.in_work, OrderStatus.ready]))
         )
+        pid, pname = str(product.id), product.name
     has_active = bool(active)
     note = (
         "⚠️ На позиції є активні замовлення. Радимо лише зняти з продажу — дані залишаться для звітності."
         if has_active
-        else f"Видалити «{product.name}»? Дію не можна скасувати."
+        else f"Видалити «{pname}»? Дію не можна скасувати."
     )
-    await message.answer(note, reply_markup=confirm_delete(str(product.id), has_active))
+    await message.answer(note, reply_markup=confirm_delete(pid, has_active))
 
 
 @router.callback_query(F.data.startswith("del:yes:"))
@@ -548,7 +721,7 @@ async def del_yes(cb: CallbackQuery) -> None:
             product.is_deleted = True
             product.is_available = False
             await session.commit()
-    await cb.message.answer("Видалено. (зберігається в архіві 30 днів)")
+    await cb.message.answer("Видалено. (зберігається в архіві 30 днів)", reply_markup=back_to_admin())
     await cb.answer()
 
 
@@ -560,7 +733,7 @@ async def del_hide(cb: CallbackQuery) -> None:
         if product:
             product.is_available = False
             await session.commit()
-    await cb.message.answer("Знято з продажу. Дані збережено.")
+    await cb.message.answer("Знято з продажу. Дані збережено.", reply_markup=back_to_admin())
     await cb.answer()
 
 
@@ -570,94 +743,22 @@ async def del_no(cb: CallbackQuery) -> None:
     await cb.answer()
 
 
-# ───────── /orders /stats ─────────
+# ─────────────────────────── /orders /stats ───────────────────────────
 
 @router.message(Command("orders"))
 async def cmd_orders(message: Message) -> None:
-    async with async_session() as session:
-        user = await get_or_create_user(session, message.from_user.id, message.from_user.full_name)
-        await session.commit()
-        if not is_admin(user):
-            await message.answer("Недостатньо прав.")
-            return
-        # Active orders: anything not delivered/cancelled, freshest first.
-        active = (await session.scalars(
-            select(Order)
-            .where(Order.status.in_([OrderStatus.new, OrderStatus.in_work, OrderStatus.ready]))
-            .order_by(Order.created_at.desc())
-            .limit(15)
-        )).all()
-    if not active:
-        await message.answer("Активних замовлень немає. 🌿")
+    user = await _load_user(message.from_user.id, message.from_user.full_name)
+    if not is_admin(user):
+        await message.answer("Недостатньо прав.")
         return
-    await message.answer(f"<b>Активні замовлення: {len(active)}</b>", parse_mode="HTML")
-    for o in active:
-        addr = o.address or "Самовивіз"
-        slot = f"{o.delivery_at:%d.%m %H:%M}" if o.delivery_at else "час не вказано"
-        text = (
-            f"№{str(o.id)[:8].upper()} · <b>{STATUS_LABEL.get(o.status, o.status)}</b>\n"
-            f"💰 {o.total_price} грн\n"
-            f"📍 {addr}\n"
-            f"⏱ {slot}"
-        )
-        if o.recipient_name or o.recipient_phone:
-            text += f"\n👤 {o.recipient_name or ''} {o.recipient_phone or ''}".rstrip()
-        if o.comment:
-            text += f"\n💬 {o.comment}"
-        await message.answer(
-            text,
-            parse_mode="HTML",
-            reply_markup=order_actions(str(o.id), o.status.value),
-        )
+    await _render_orders(message)
 
 
 @router.message(Command("stats"))
 async def cmd_stats(message: Message, command: CommandObject) -> None:
     """Owner-only per TZ §05."""
-    async with async_session() as session:
-        user = await get_or_create_user(session, message.from_user.id, message.from_user.full_name)
-        await session.commit()
+    user = await _load_user(message.from_user.id, message.from_user.full_name)
     if not is_owner(user):
         await message.answer("Тільки для власника.")
         return
-    period = (command.args or "day").strip().lower()
-    if period in {"week", "тиждень"}:
-        since = datetime.utcnow() - timedelta(days=7)
-        label = "тиждень"
-    elif period in {"month", "місяць"}:
-        since = datetime.utcnow() - timedelta(days=30)
-        label = "місяць"
-    else:
-        since = datetime.utcnow() - timedelta(days=1)
-        label = "день"
-
-    async with async_session() as session:
-        orders = (await session.scalars(
-            select(Order).where(Order.created_at >= since)
-        )).all()
-        order_ids = [o.id for o in orders]
-        from app.models import OrderItem
-        rows: list[tuple[Product, int]] = []
-        if order_ids:
-            stmt = (
-                select(Product, func.sum(OrderItem.quantity))
-                .join(OrderItem, OrderItem.product_id == Product.id)
-                .where(OrderItem.order_id.in_(order_ids))
-                .group_by(Product.id)
-                .order_by(func.sum(OrderItem.quantity).desc())
-                .limit(3)
-            )
-            rows = (await session.execute(stmt)).all()
-
-    total = sum((o.total_price for o in orders), Decimal("0"))
-    cnt = len(orders)
-    avg = (total / cnt) if cnt else Decimal("0")
-    top_label = ", ".join(f"{p.name}×{c}" for p, c in rows) or "—"
-    await message.answer(
-        f"<b>Статистика за {label}:</b>\n"
-        f"Замовлень: {cnt}\n"
-        f"Виручка: {total} грн\n"
-        f"Середній чек: {avg:.0f} грн\n"
-        f"Топ: {top_label}",
-        parse_mode="HTML",
-    )
+    await _render_stats(message, (command.args or "day").strip().lower())

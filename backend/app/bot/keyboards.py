@@ -66,10 +66,18 @@ def admin_main(new: int = 0, in_work: int = 0, ready: int = 0) -> InlineKeyboard
         inline_keyboard=[
             [InlineKeyboardButton(text=orders_label, callback_data="adm:orders")],
             [InlineKeyboardButton(text="🌸 Асортимент", callback_data="adm:catalog")],
+            [InlineKeyboardButton(text="➕ Додати букет", callback_data="adm:add"),
+             InlineKeyboardButton(text="🌷 Додати елемент", callback_data="adm:addflower")],
             [InlineKeyboardButton(text="📦 Оновити наявність", callback_data="adm:stock")],
             [InlineKeyboardButton(text="📊 Статистика", callback_data="adm:stats")],
             [InlineKeyboardButton(text="⚙️ Налаштування", callback_data="adm:settings")],
         ]
+    )
+
+
+def back_to_admin() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[[InlineKeyboardButton(text="⬅️ Меню адміна", callback_data="adm:menu")]]
     )
 
 
