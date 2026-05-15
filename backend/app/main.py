@@ -9,7 +9,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import ai, dates, greetings, orders, products, swipes
-from app.bot.bot import make_bot, make_dispatcher
+from app.bot.bot import make_bot, make_dispatcher, setup_commands
 from app.config import settings
 from app.services.init_db import init_db
 from app.services.scheduler import make_scheduler
@@ -35,6 +35,9 @@ async def lifespan(app: FastAPI):
     )
     log.info("webhook registered: %s", settings.webhook_url)
     log.info("TWA_URL = %r", settings.twa_url or "(empty — WebApp buttons will be inert)")
+
+    # Populate Telegram's "/" command menu so users can discover features.
+    await setup_commands(bot)
 
     scheduler = make_scheduler(bot)
     scheduler.start()
