@@ -32,6 +32,8 @@ ALL_COMMANDS = [
     BotCommand(command="photo", description="🖼 Оновити фото товару"),
     BotCommand(command="stock", description="📦 Оновити наявність"),
     BotCommand(command="stats", description="📊 Статистика"),
+    BotCommand(command="testreminder", description="⏱ Тест: запустити sweep дат"),
+    BotCommand(command="testsub", description="⏱ Тест: запустити sweep підписок"),
     BotCommand(command="cancel", description="✖️ Скасувати поточну дію"),
 ]
 

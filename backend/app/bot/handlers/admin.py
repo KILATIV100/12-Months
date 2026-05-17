@@ -762,3 +762,39 @@ async def cmd_stats(message: Message, command: CommandObject) -> None:
         await message.answer("Тільки для власника.")
         return
     await _render_stats(message, (command.args or "day").strip().lower())
+
+
+# ─────────────────────────── Test triggers (owner only) ───────────────────────────
+
+@router.message(Command("testreminder"))
+async def cmd_test_reminder(message: Message, bot: Bot) -> None:
+    """Force the daily date-reminder sweep right now (otherwise it waits for 09:00)."""
+    user = await _load_user(message.from_user.id, message.from_user.full_name)
+    if not is_owner(user):
+        await message.answer("Тільки для власника.")
+        return
+    from app.services.scheduler import sweep_dates
+    await message.answer("⏱ Запускаю sweep нагадувань…")
+    try:
+        await sweep_dates(bot)
+        await message.answer("✅ Sweep завершено. Якщо у когось сьогодні reminder — повідомлення вже надіслане.")
+    except Exception as e:
+        log.exception("test reminder failed")
+        await message.answer(f"❌ Помилка: {e}")
+
+
+@router.message(Command("testsub"))
+async def cmd_test_sub(message: Message, bot: Bot) -> None:
+    """Force the subscription auto-order sweep right now."""
+    user = await _load_user(message.from_user.id, message.from_user.full_name)
+    if not is_owner(user):
+        await message.answer("Тільки для власника.")
+        return
+    from app.services.scheduler import sweep_subscriptions
+    await message.answer("⏱ Запускаю sweep підписок…")
+    try:
+        await sweep_subscriptions(bot)
+        await message.answer("✅ Sweep завершено.")
+    except Exception as e:
+        log.exception("test sub failed")
+        await message.answer(f"❌ Помилка: {e}")
