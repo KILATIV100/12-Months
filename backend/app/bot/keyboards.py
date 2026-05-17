@@ -8,6 +8,23 @@ from aiogram.types import (
 
 from app.config import settings
 
+
+# ── Always-visible reply keyboards (buttons at the bottom of the chat) ──
+
+def main_reply_kb(is_admin: bool = False) -> ReplyKeyboardMarkup:
+    """Buttons that stay below the input field — no need to type commands.
+
+    Tap labels are matched in handlers/start.py by exact text equality.
+    """
+    rows = [
+        [KeyboardButton(text="💐 Замовити"), KeyboardButton(text="📅 Мої дати")],
+        [KeyboardButton(text="🧾 Історія"), KeyboardButton(text="🔁 Абонемент")],
+    ]
+    if is_admin:
+        rows.append([KeyboardButton(text="⚙️ Адмін"), KeyboardButton(text="📋 Замовлення")])
+    return ReplyKeyboardMarkup(keyboard=rows, resize_keyboard=True, is_persistent=True)
+
+
 # ── Onboarding (TZ §05 /start) ──
 
 def onboarding_main() -> InlineKeyboardMarkup:

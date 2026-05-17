@@ -5,8 +5,8 @@ from aiogram import Router, F
 from aiogram.filters import CommandStart
 from aiogram.types import CallbackQuery, Message
 
-from app.bot.access import get_or_create_user
-from app.bot.keyboards import occasion_keyboard, onboarding_main, open_twa
+from app.bot.access import get_or_create_user, is_admin
+from app.bot.keyboards import main_reply_kb, occasion_keyboard, onboarding_main, open_twa
 from app.config import settings
 from app.db import async_session
 from app.models import UserRole
@@ -32,7 +32,48 @@ async def cmd_start(message: Message) -> None:
         user = await get_or_create_user(session, message.from_user.id, message.from_user.full_name)
         await _auto_promote_owner(session, user)
         await session.commit()
+    # First send the persistent keyboard so it sticks below the input field,
+    # then the welcome inline keyboard with the main onboarding choices.
+    await message.answer("Кнопки внизу екрана — щоб не шукати команди 👇", reply_markup=main_reply_kb(is_admin=is_admin(user)))
     await message.answer(WELCOME, reply_markup=onboarding_main())
+
+
+# ── Reply-keyboard taps (text equals the button label) ──
+
+@router.message(F.text == "💐 Замовити")
+async def kb_order(message: Message) -> None:
+    await message.answer("Обирайте букет у каталозі:", reply_markup=open_twa("Каталог", "catalog"))
+
+
+@router.message(F.text == "📅 Мої дати")
+async def kb_dates(message: Message) -> None:
+    # Lazy import — avoids circular dependency at module load.
+    from app.bot.handlers.dates import cmd_dates
+    await cmd_dates(message)
+
+
+@router.message(F.text == "🧾 Історія")
+async def kb_history(message: Message) -> None:
+    from app.bot.handlers.quick import cmd_history
+    await cmd_history(message)
+
+
+@router.message(F.text == "🔁 Абонемент")
+async def kb_subscribe(message: Message) -> None:
+    from app.bot.handlers.subscribe import cmd_subscribe
+    await cmd_subscribe(message)
+
+
+@router.message(F.text == "⚙️ Адмін")
+async def kb_admin(message: Message) -> None:
+    from app.bot.handlers.admin import cmd_admin
+    await cmd_admin(message)
+
+
+@router.message(F.text == "📋 Замовлення")
+async def kb_orders(message: Message) -> None:
+    from app.bot.handlers.admin import cmd_orders
+    await cmd_orders(message)
 
 
 @router.callback_query(F.data.startswith("ob:"))
