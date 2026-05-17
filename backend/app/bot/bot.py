@@ -7,25 +7,24 @@ from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.redis import RedisStorage
-from aiogram.types import BotCommand, BotCommandScopeChat, BotCommandScopeDefault
+from aiogram.types import BotCommand, BotCommandScopeDefault
 
 from app.bot.handlers import admin, dates, quick, start, subscribe
 from app.config import settings
 
 log = logging.getLogger(__name__)
 
-# Commands every user sees in the "/" menu.
-PUBLIC_COMMANDS = [
+# One unified command list shown to everyone. The per-chat scope trick to
+# hide admin commands from customers turned out to cache for hours on the
+# Telegram client side; non-admins who tap an admin command just get a
+# "Недостатньо прав" reply, which is fine.
+ALL_COMMANDS = [
     BotCommand(command="start", description="🌿 Почати / головне меню"),
     BotCommand(command="order", description="💐 Замовити букет"),
     BotCommand(command="dates", description="📅 Мої важливі дати"),
     BotCommand(command="subscribe", description="🔁 Квітковий абонемент"),
     BotCommand(command="history", description="🧾 Історія замовлень"),
     BotCommand(command="status", description="📦 Статус замовлення"),
-]
-
-# Extra commands shown only to the owner/admins (scoped to their chat).
-ADMIN_COMMANDS = PUBLIC_COMMANDS + [
     BotCommand(command="admin", description="⚙️ Меню адміна"),
     BotCommand(command="orders", description="📋 Активні замовлення"),
     BotCommand(command="add", description="➕ Додати букет"),
@@ -45,38 +44,15 @@ def make_bot() -> Bot:
 
 
 async def setup_commands(bot: Bot) -> None:
-    """Register the "/" menu. Public list for everyone, fuller list for the owner.
-
-    Clears any previously-registered commands first so stale entries from old
-    deploys don't linger. Logs success/failure so the deployer can verify.
-    """
-    # Public scope.
     try:
         await bot.delete_my_commands(scope=BotCommandScopeDefault())
     except Exception as exc:
-        log.warning("delete public commands failed: %s", exc)
+        log.warning("delete commands failed: %s", exc)
     try:
-        await bot.set_my_commands(PUBLIC_COMMANDS, scope=BotCommandScopeDefault())
-        log.info("public commands registered (%d)", len(PUBLIC_COMMANDS))
+        await bot.set_my_commands(ALL_COMMANDS, scope=BotCommandScopeDefault())
+        log.info("commands registered (%d)", len(ALL_COMMANDS))
     except Exception:
-        log.exception("set public commands failed")
-
-    # Per-owner scope.
-    if not settings.owner_tg_id:
-        log.warning("OWNER_TG_ID not set — admin commands menu will not be visible")
-        return
-    scope = BotCommandScopeChat(chat_id=settings.owner_tg_id)
-    try:
-        await bot.delete_my_commands(scope=scope)
-    except Exception as exc:
-        log.warning("delete owner commands failed: %s", exc)
-    try:
-        await bot.set_my_commands(ADMIN_COMMANDS, scope=scope)
-        log.info("admin commands registered for owner %s (%d)", settings.owner_tg_id, len(ADMIN_COMMANDS))
-    except Exception:
-        # Common cause: owner hasn't messaged the bot yet, so Telegram doesn't
-        # know about that chat. Will succeed on next boot after /start.
-        log.exception("set owner commands failed (owner may not have started bot yet)")
+        log.exception("set commands failed")
 
 
 async def make_dispatcher() -> Dispatcher:
